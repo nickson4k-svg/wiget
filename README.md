@@ -1,53 +1,55 @@
-# CalWidget — Нативний віджет калорій та БЖВ для Windows
+# CalWidget — Native Calories & Macro Tracker Widget for Windows
 
-Легкий, швидкий та зручний нативний віджет для обліку калорій і макронутрієнтів (білки, жири, вуглеводи) у стилі фітнес-кілець (Macro Rings).
+A lightweight, fast, and elegant native desktop widget for tracking calories and macronutrients (proteins, fats, carbs) styled with intuitive **Macro Rings**.
 
 ![CalWidget Screenshot](assets/IMG_20260927_200856.jpg)
 
 ---
 
-## Особливості
+## Key Features
 
-- **Фітнес-кільця БЖВ:** Три концентричні кільця для візуалізації жирів, білків та вуглеводів з плавними анімаціями.
-- **Миттєвий перемикач тем:** Світла та темна теми з автозбереженням налаштувань.
-- **Зручний каталог продуктів:** Додавання порцій у грамах або мілілітрах з швидкими кнопками вибору.
-- **Власний калькулятор BMR / TDEE:** Автоматичний розрахунок норми за формулою Міффліна-Сан Жеора або ручне налаштування цілей.
-- **Мінімальне споживання ресурсів:** Працює автономно, швидко запускається та не навантажує систему.
+- **Macro Fitness Rings:** Three concentric animated rings displaying progress for Fats, Proteins, and Carbs.
+- **Fluted Glass Optical Shader Effect:** Custom high-performance in-memory shader engine rendering ribbed frosted glass (Paper Design aesthetic) with real-time backdrop distortion, dynamic shadows, edge bevels, and zero GC allocations at 60 FPS.
+- **Instant Theme Switching:** Seamlessly toggle between Light and Dark themes with settings auto-saved.
+- **Rich Food Catalog:** Easily add food and beverages with pre-configured gram or volume quick-select buttons.
+- **BMR & TDEE Calculator:** Built-in Mifflin-St Jeor formula for accurate daily targets and customizable macro goals.
+- **Ultra-Lightweight & Fast:** Runs natively with minimal memory footprint (< 25 MB) and instant launch time.
 
 ---
 
-## Встановлення та запуск
+## Installation & Running
 
-### Спосіб 1. Запуск готового виконуваного файлу (рекомендовано)
+### Option 1. Run Pre-Built Executable (Recommended)
 
-1. Завантажте репозиторій або клонуйте його:
+1. Clone or download the repository:
    ```cmd
    git clone https://github.com/nickson4k-svg/wiget.git
    cd wiget
    ```
-2. Запустіть файл `run.bat` або безпосередньо `publish/CalWidget.exe`.
+2. Launch `run.bat` or run `publish/CalWidget.exe` directly.
 
-### Спосіб 2. Збірка з вихідного коду (.NET 8 SDK)
+### Option 2. Build from Source (.NET 8 SDK)
 
-1. Переконайтеся, що у вас встановлено **.NET 8 SDK** (або новішу версію).
-2. Відкрийте термінал у папці проєкту та виконайте:
+1. Ensure **.NET 8 SDK** (or newer) is installed.
+2. Open a terminal in the project directory and run:
    ```cmd
    dotnet publish -c Release -o publish
    ```
-3. Запустіть згенерований `CalWidget.exe` із створеної папки `publish`.
+3. Run the compiled `CalWidget.exe` from the generated `publish` folder.
 
 ---
 
-## Структура проєкту
+## Project Structure
 
 ```text
-├── assets/              # Скріншоти та медіа-файли
-│   └── screenshot.png   # Скріншот програми для README
-├── publish/             # Зібраний автономний файл CalWidget.exe
-├── Models/              # Моделі даних
-├── Services/            # Сервіси збереження, розрахунків та каталогу
-├── Helpers/             # Допоміжні класи та анімації
+├── assets/              # Screenshots and media assets
+│   └── screenshot.png   # Main application screenshot
+├── publish/             # Standalone compiled CalWidget.exe
+├── Helpers/             # Fluted glass shader engine, hotkeys, native window helpers
+├── Models/              # Data models (MacroGoals, DayRecord, AppSettings, etc.)
+├── Services/            # Storage, calorie calculations, and food database services
+├── Themes/              # WPF Light and Dark theme resources
 ├── App.xaml / MainWindow.xaml / SettingsWindow.xaml / AddFoodDialog.xaml
-├── run.bat              # Скрипт для швидкого запуску
-└── README.md            # Документація проєкту
+├── run.bat              # Quick launch batch script
+└── README.md            # Project documentation
 ```
