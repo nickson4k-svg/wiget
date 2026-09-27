@@ -1,0 +1,8 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+*.log
+
+# Temp files
+*.tgz
+package/

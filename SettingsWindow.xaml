@@ -1,0 +1,396 @@
+<Window x:Class="CalWidget.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Налаштування норми калорій та БЖВ"
+        Width="480"
+        Height="630"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        MouseDown="Window_MouseDown">
+
+    <Border Background="{DynamicResource BgSurfaceBrush}"
+            BorderBrush="{DynamicResource CardBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="14"
+            Margin="8">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="22" Color="#000000" Opacity="0.35" ShadowDepth="6" />
+        </Border.Effect>
+
+        <Grid Margin="18,14,18,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />  <!-- Header -->
+                <RowDefinition Height="*" />     <!-- Content -->
+                <RowDefinition Height="Auto" />  <!-- Bottom Actions -->
+            </Grid.RowDefinitions>
+
+            <!-- Row 0: Header -->
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="НАЛАШТУВАННЯ ТА КАЛЬКУЛЯТОР БЖВ"
+                               FontSize="9.5"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextMutedBrush}" />
+                    <TextBlock Text="Розрахунок норми калорій (BMR &amp; TDEE)"
+                               FontSize="14.5"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Margin="0,2,0,0" />
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                        Style="{StaticResource MinimalIconButton}"
+                        Click="CloseButton_Click"
+                        Padding="4">
+                    <Path Width="11" Height="11"
+                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                          Stretch="Uniform" />
+                </Button>
+            </Grid>
+
+            <!-- Row 1: Scrollable Body -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="0,0,6,0">
+                    <!-- Theme Selector -->
+                    <TextBlock Text="Тема оформлення:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,5" />
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <RadioButton x:Name="ThemeDarkRadio" Grid.Column="0" Content="🌙 Темна графіка" GroupName="ThemeGroup" Checked="ThemeRadio_Checked" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" />
+                        <RadioButton x:Name="ThemeLightRadio" Grid.Column="2" Content="☀️ Світла тема" GroupName="ThemeGroup" Checked="ThemeRadio_Checked" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" />
+                    </Grid>
+
+                    <!-- Ефект скла та прозорості (Fluted Glass & Mica Fluent) -->
+                    <TextBlock Text="Ефект скла та прозорості:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,5" />
+                    <Border Background="{DynamicResource CardSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,0,0,14">
+                        <StackPanel>
+                            <!-- Головний перемикач скла -->
+                            <CheckBox x:Name="EnableGlassCheck"
+                                      Content="Ефект ребристого скла (Fluted Glass)"
+                                      IsChecked="True"
+                                      FontSize="12"
+                                      FontWeight="SemiBold"
+                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                      Checked="GlassControl_Changed"
+                                      Unchecked="GlassControl_Changed"
+                                      Margin="0,0,0,8" />
+
+                            <!-- Налаштування скла (активні лише при IsChecked=True) -->
+                            <StackPanel IsEnabled="{Binding ElementName=EnableGlassCheck, Path=IsChecked}">
+                                <!-- Прозорість скла -->
+                                <Grid Margin="0,4,0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Прозорість скла (Glass Opacity):" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}" />
+                                    <TextBlock x:Name="GlassOpacityValText" Grid.Column="1" Text="60%" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </Grid>
+                                <Slider x:Name="GlassOpacitySlider" Minimum="0.10" Maximum="0.80" Value="0.60" SmallChange="0.05" LargeChange="0.10" ValueChanged="GlassControl_Changed" Margin="0,0,0,6" />
+
+                                <!-- Виразність смужок (Distortion) -->
+                                <Grid Margin="0,4,0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Виразність смужок (Rib Distortion):" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}" />
+                                    <TextBlock x:Name="RibDistortionValText" Grid.Column="1" Text="0.75" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </Grid>
+                                <Slider x:Name="RibDistortionSlider" Minimum="0.0" Maximum="1.5" Value="0.75" SmallChange="0.05" LargeChange="0.2" ValueChanged="GlassControl_Changed" Margin="0,0,0,6" />
+
+                                <!-- Ширина смужок -->
+                                <Grid Margin="0,4,0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Ширина смужок (Rib Width):" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}" />
+                                    <TextBlock x:Name="RibWidthValText" Grid.Column="1" Text="12 px" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </Grid>
+                                <Slider x:Name="RibWidthSlider" Minimum="8" Maximum="32" Value="12" SmallChange="1" LargeChange="4" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="GlassControl_Changed" Margin="0,0,0,6" />
+
+                                <!-- Розмиття фону -->
+                                <Grid Margin="0,4,0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Розмиття фону (Blur Intensity):" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}" />
+                                    <TextBlock x:Name="BlurRadiusValText" Grid.Column="1" Text="3 px" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </Grid>
+                                <Slider x:Name="BlurRadiusSlider" Minimum="0" Maximum="15" Value="3" SmallChange="1" LargeChange="3" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="GlassControl_Changed" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Gender -->
+                    <TextBlock Text="Стать:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,5" />
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <RadioButton x:Name="MaleRadio" Grid.Column="0" Content="Чоловік" GroupName="GenderGroup" Checked="Recalculate_Event" IsChecked="True" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" />
+                        <RadioButton x:Name="FemaleRadio" Grid.Column="2" Content="Жінка" GroupName="GenderGroup" Checked="Recalculate_Event" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" />
+                    </Grid>
+
+                    <!-- Body Measurements -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Вага (кг)" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,3" />
+                            <Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8,4">
+                                <TextBox x:Name="WeightBox" Text="75" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextChanged="Recalculate_Event" />
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Зріст (см)" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,3" />
+                            <Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8,4">
+                                <TextBox x:Name="HeightBox" Text="178" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextChanged="Recalculate_Event" />
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Вік (років)" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,3" />
+                            <Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8,4">
+                                <TextBox x:Name="AgeBox" Text="28" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextChanged="Recalculate_Event" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Activity Level -->
+                    <TextBlock Text="Рівень фізичної активності:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4" />
+                    <ComboBox x:Name="ActivityCombo" Margin="0,0,0,12" SelectionChanged="Recalculate_Event">
+                        <ComboBoxItem Content="1.20 — Сидячий спосіб життя (без тренувань)" Tag="1.20" />
+                        <ComboBoxItem Content="1.375 — Легка активність (1-3 тренування на тиждень)" Tag="1.375" IsSelected="True" />
+                        <ComboBoxItem Content="1.55 — Помірна активність (3-5 тренувань на тиждень)" Tag="1.55" />
+                        <ComboBoxItem Content="1.725 — Висока активність (6-7 тренувань щодня)" Tag="1.725" />
+                        <ComboBoxItem Content="1.90 — Екстремальна активність (важка праця + спорт)" Tag="1.90" />
+                    </ComboBox>
+
+                    <!-- Goal -->
+                    <TextBlock Text="Ціль харчування та розподіл БЖВ:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4" />
+                    <ComboBox x:Name="GoalCombo" Margin="0,0,0,14" SelectionChanged="Recalculate_Event">
+                        <ComboBoxItem Content="Схуднення швидке (-20% ккал, Б:30% Ж:30% В:40%)" Tag="Deficit20" />
+                        <ComboBoxItem Content="Схуднення плавне (-15% ккал, Б:30% Ж:30% В:40%)" Tag="Deficit15" IsSelected="True" />
+                        <ComboBoxItem Content="Підтримка ваги (TDEE, Б:25% Ж:25% В:50%)" Tag="Maintain" />
+                        <ComboBoxItem Content="Набір сухої маси (+10% ккал, Б:25% Ж:20% В:55%)" Tag="Surplus10" />
+                        <ComboBoxItem Content="Набір маси активний (+15% ккал, Б:25% Ж:20% В:55%)" Tag="Surplus15" />
+                    </ComboBox>
+
+                    <!-- Calculation Results Card -->
+                    <Border Background="{DynamicResource CardSurfaceBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="12,10"
+                            Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Базовий метаболізм (BMR)" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" />
+                                    <TextBlock x:Name="BmrResultText" Text="1 750 ккал" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Typography.NumeralAlignment="Tabular" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Витрата підтримки (TDEE)" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" />
+                                    <TextBlock x:Name="TdeeResultText" Text="2 406 ккал" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Typography.NumeralAlignment="Tabular" />
+                                </StackPanel>
+                            </Grid>
+
+                            <Separator Grid.Row="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8" />
+
+                            <StackPanel Grid.Row="2">
+                                <TextBlock Text="Рекомендована добова норма калорій:" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}" />
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock x:Name="TargetResultText" Text="2 045" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource MacroEmeraldBrush}" Typography.NumeralAlignment="Tabular" />
+                                    <TextBlock Text=" ккал/день" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="4,0,0,2" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Daily Targets Form (Editable Goals) -->
+                    <TextBlock Text="Добові цілі (можна відкоригувати вручну під свій план):" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,6" />
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="6" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="6" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="6" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Calories -->
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Калорії (ккал)" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,3" />
+                            <Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="6,4">
+                                <TextBox x:Name="TargetCalBox" Text="2045" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" />
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Carbs -->
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Вуглеводи (г)" FontSize="10" Foreground="{DynamicResource MacroCarbsBrush}" Margin="0,0,0,3" />
+                            <Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="6,4">
+                                <TextBox x:Name="TargetCarbsBox" Text="205" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource MacroCarbsBrush}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" />
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Protein -->
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Білки (г)" FontSize="10" Foreground="{DynamicResource MacroProteinBrush}" Margin="0,0,0,3" />
+                            <Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="6,4">
+                                <TextBox x:Name="TargetProteinBox" Text="153" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource MacroProteinBrush}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" />
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Fats -->
+                        <StackPanel Grid.Column="6">
+                            <TextBlock Text="Жири (г)" FontSize="10" Foreground="{DynamicResource MacroFatBrush}" Margin="0,0,0,3" />
+                            <Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="6,4">
+                                <TextBox x:Name="TargetFatBox" Text="68" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource MacroFatBrush}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Розклад прийомів їжі (Meal Timing) -->
+                    <TextBlock Text="Розумний графік прийомів їжі:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,6,0,6" />
+                    <Border Background="{DynamicResource CardSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Час першого прийому -->
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Перший прийом" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,3" />
+                                <Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="6,4">
+                                    <TextBox x:Name="FirstMealTimeBox" Text="09:00" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" />
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Кількість прийомів -->
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Прийомів на день" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,3" />
+                                <ComboBox x:Name="MealCountCombo" Height="28">
+                                    <ComboBoxItem Content="3 прийоми" Tag="3" />
+                                    <ComboBoxItem Content="4 прийоми" Tag="4" IsSelected="True" />
+                                    <ComboBoxItem Content="5 прийомів" Tag="5" />
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Інтервал -->
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="Інтервал (год)" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,3" />
+                                <Border Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="6,4">
+                                    <TextBox x:Name="MealIntervalBox" Text="3.5" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" />
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Today's Log Items List -->
+                    <TextBlock Text="Журнал з'їденого за сьогодні:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,6" />
+                    <Border Background="{DynamicResource CardSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="6" MaxHeight="120">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="TodayItemsList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,2" Padding="6,4" Background="{DynamicResource InputBgBrush}" CornerRadius="5">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}" Foreground="{DynamicResource TextMutedBrush}" FontSize="10.5" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
+                                                    <TextBlock FontSize="9.5" Foreground="{DynamicResource TextMutedBrush}">
+                                                        <Run Text="{Binding PortionAmount, StringFormat='{}{0:0}'}" />
+                                                        <Run Text="{Binding Unit}" />
+                                                        <Run Text=" | В: " /><Run Text="{Binding Carbs, StringFormat='{}{0:0.#}г'}" Foreground="{DynamicResource MacroCarbsBrush}" />
+                                                        <Run Text=" Б: " /><Run Text="{Binding Protein, StringFormat='{}{0:0.#}г'}" Foreground="{DynamicResource MacroProteinBrush}" />
+                                                        <Run Text=" Ж: " /><Run Text="{Binding Fat, StringFormat='{}{0:0.#}г'}" Foreground="{DynamicResource MacroFatBrush}" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{Binding Calories, StringFormat='{}{0:0} ккал'}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="11.5" FontWeight="SemiBold" Margin="6,0,8,0" VerticalAlignment="Center" />
+                                                <Button Grid.Column="3" Style="{StaticResource MinimalIconButton}" Tag="{Binding Id}" Click="DeleteItem_Click" ToolTip="Видалити запис" Padding="2">
+                                                    <Path Width="9" Height="9" Fill="{DynamicResource TextMutedBrush}" Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" Stretch="Uniform" />
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Row 2: Bottom Actions -->
+            <Grid Grid.Row="2" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="Хоткей: Ctrl + Alt + C" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Скасувати"
+                            Style="{StaticResource MinimalTextButton}"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Click="CloseButton_Click"
+                            Margin="0,0,8,0" />
+                    <Button Content="Зберегти норму"
+                            Style="{StaticResource MinimalTextButton}"
+                            Background="{DynamicResource MacroEmeraldBrush}"
+                            Foreground="#FFFFFF"
+                            BorderThickness="0"
+                            Click="SaveButton_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

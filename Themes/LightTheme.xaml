@@ -1,0 +1,67 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Світла тема: Преміальна світло-сіра палітра -->
+    <Color x:Key="BgSurfaceColor">#F8F9FA</Color>
+    <Color x:Key="CardSurfaceColor">#FFFFFF</Color>
+    <Color x:Key="CardBorderColor">#E2E8F0</Color>
+    <Color x:Key="TextPrimaryColor">#18181B</Color>
+    <Color x:Key="TextMutedColor">#64748B</Color>
+    <Color x:Key="HoverBgColor">#EDF2F7</Color>
+    <Color x:Key="InputBgColor">#F1F5F9</Color>
+    <Color x:Key="InputBorderColor">#CBD5E1</Color>
+    <Color x:Key="InputFocusBorderColor">#94A3B8</Color>
+    <Color x:Key="SeparatorColor">#E2E8F0</Color>
+
+    <!-- Кольори кілець (насичені та виразні на світлому фоні) -->
+    <Color x:Key="MacroFatColor">#D97706</Color>      <!-- Насичений янтар/помаранчевий -->
+    <Color x:Key="MacroProteinColor">#2563EB</Color>  <!-- Глибокий синій -->
+    <Color x:Key="MacroCarbsColor">#DC2626</Color>    <!-- Чіткий коралово-червоний -->
+    <Color x:Key="MacroEmeraldColor">#059669</Color>  <!-- Смарагдовий -->
+
+    <!-- Пензлі світлої теми -->
+    <SolidColorBrush x:Key="BgSurfaceBrush" Color="{StaticResource BgSurfaceColor}" />
+    <SolidColorBrush x:Key="CardSurfaceBrush" Color="{StaticResource CardSurfaceColor}" />
+    <SolidColorBrush x:Key="CardBorderBrush" Color="{StaticResource CardBorderColor}" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+    <SolidColorBrush x:Key="HoverBgBrush" Color="{StaticResource HoverBgColor}" />
+    <SolidColorBrush x:Key="InputBgBrush" Color="{StaticResource InputBgColor}" />
+    <SolidColorBrush x:Key="InputBorderBrush" Color="{StaticResource InputBorderColor}" />
+    <SolidColorBrush x:Key="InputFocusBorderBrush" Color="{StaticResource InputFocusBorderColor}" />
+    <SolidColorBrush x:Key="SeparatorBrush" Color="{StaticResource SeparatorColor}" />
+
+    <SolidColorBrush x:Key="MacroFatBrush" Color="{StaticResource MacroFatColor}" />
+    <SolidColorBrush x:Key="MacroProteinBrush" Color="{StaticResource MacroProteinColor}" />
+    <SolidColorBrush x:Key="MacroCarbsBrush" Color="{StaticResource MacroCarbsColor}" />
+    <SolidColorBrush x:Key="MacroEmeraldBrush" Color="{StaticResource MacroEmeraldColor}" />
+
+    <!-- Напівпрозорі світлі доріжки кілець (rgba(0, 0, 0, 0.08)) -->
+    <SolidColorBrush x:Key="RingTrackBrush" Color="#000000" Opacity="0.08" />
+    <SolidColorBrush x:Key="MacroFatTrackBrush" Color="{StaticResource MacroFatColor}" Opacity="0.14" />
+    <SolidColorBrush x:Key="MacroProteinTrackBrush" Color="{StaticResource MacroProteinColor}" Opacity="0.14" />
+    <SolidColorBrush x:Key="MacroCarbsTrackBrush" Color="{StaticResource MacroCarbsColor}" Opacity="0.14" />
+
+    <!-- Стилі аватарок карток каталогу (світла тема: м'який пастельний світло-сірий фон) -->
+    <SolidColorBrush x:Key="ProductAvatarBgBrush" Color="#F1F5F9" />
+    <SolidColorBrush x:Key="ProductAvatarBorderBrush" Color="#E2E8F0" />
+
+    <!-- Акрилове скло (Glassmorphism / Fluted Glass) -->
+    <SolidColorBrush x:Key="WindowGlassBgBrush" Color="#25FFFFFF" />
+    <SolidColorBrush x:Key="WindowGlassBorderBrush" Color="#50FFFFFF" />
+    <SolidColorBrush x:Key="FrostedCardBgBrush" Color="#D9FFFFFF" />
+    <SolidColorBrush x:Key="FrostedCardBorderBrush" Color="#E5FFFFFF" />
+
+    <!-- Ребристий шейдер Fluted Glass (вертикальні призми 16px з відблисками та тінями) -->
+    <LinearGradientBrush x:Key="FlutedGlassRibsBrush" StartPoint="0,0" EndPoint="1,0" SpreadMethod="Repeat" MappingMode="Absolute">
+        <LinearGradientBrush.Transform>
+            <ScaleTransform ScaleX="16" />
+        </LinearGradientBrush.Transform>
+        <!-- Напівпрозорий відблиск (Highlight) -->
+        <GradientStop Color="#40FFFFFF" Offset="0.0" />
+        <GradientStop Color="#00FFFFFF" Offset="0.3" />
+        <!-- Повністю прозора середина (видно робочий стіл) -->
+        <GradientStop Color="#00000000" Offset="0.7" />
+        <!-- М'яка напівпрозора тінь ребра (Shadow) -->
+        <GradientStop Color="#25000000" Offset="1.0" />
+    </LinearGradientBrush>
+</ResourceDictionary>
