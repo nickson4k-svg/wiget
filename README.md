@@ -2,7 +2,7 @@
 
 Легкий, швидкий та зручний нативний віджет для обліку калорій і макронутрієнтів (білки, жири, вуглеводи) у стилі фітнес-кілець (Macro Rings).
 
-![CalWidget Screenshot](assets/screenshot.png)
+![CalWidget Screenshot](assets/IMG_20260927_200856.jpg)
 
 ---
 
