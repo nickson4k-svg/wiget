@@ -206,7 +206,6 @@ namespace CalWidget
         private const int WM_MOVING = 0x0216;
         private const int WM_ENTERSIZEMOVE = 0x0231;
         private const int WM_EXITSIZEMOVE  = 0x0232;
-        private long _lastGlassUpdateTick = 0;
         private bool _isDragging = false;
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -214,10 +213,14 @@ namespace CalWidget
             switch (msg)
             {
                 case WM_ENTERSIZEMOVE:
+                    // Початок перетягування — фіксуємо текстуру скла.
+                    // Це виключає затримки GDI BitBlt / DWM і гарантує максимальний фреймрейт монітора (144+ FPS) без дьоргання!
                     _isDragging = true;
+                    _glassDebounceTimer.Stop();
                     break;
 
                 case WM_EXITSIZEMOVE:
+                    // Завершення перетягування — відразу оновлюємо фон та кільця
                     _isDragging = false;
                     UpdateCascadeGlass(force: true);
                     SaveWindowPosition();
@@ -225,13 +228,7 @@ namespace CalWidget
 
                 case WM_MOVE:
                 case WM_MOVING:
-                    // Плавне оновлення скла під час перетягування (до 30 FPS ~33 мс ліміт, без зависання UI)
-                    long now = Environment.TickCount64;
-                    if (now - _lastGlassUpdateTick >= 33)
-                    {
-                        _lastGlassUpdateTick = now;
-                        UpdateCascadeGlass(force: true);
-                    }
+                    // Під час перетягування не блокуємо UI-потік захопленнями екрана
                     break;
             }
             return IntPtr.Zero;
@@ -240,15 +237,11 @@ namespace CalWidget
         protected override void OnLocationChanged(EventArgs e)
         {
             base.OnLocationChanged(e);
-            // Якщо вікно рухається не через системний DragMove (наприклад зміна DPI або відновлення з трею)
+            // Оновлюємо скло лише коли вікно не знаходиться у стані DragMove мишею
             if (!_isDragging && IsLoaded && Visibility == Visibility.Visible)
             {
-                long now = Environment.TickCount64;
-                if (now - _lastGlassUpdateTick >= 33)
-                {
-                    _lastGlassUpdateTick = now;
-                    UpdateCascadeGlass(force: true);
-                }
+                _glassDebounceTimer.Stop();
+                _glassDebounceTimer.Start();
             }
         }
 
