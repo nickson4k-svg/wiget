@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,8 +27,6 @@ namespace CalWidget
         private readonly DispatcherTimer _midnightTimer;
 
         // Оптичний шейдер каскадного рифленого скла Fluted Glass (Paper Design)
-        private readonly DispatcherTimer _glassDebounceTimer;
-        private readonly DispatcherTimer _glassRefreshTimer;
         private bool _isUpdatingGlass = false;
 
         // Стан висувної бічної панелі каталогу (Flyout Drawer)
@@ -130,35 +130,26 @@ namespace CalWidget
             _midnightTimer.Tick += MidnightTimer_Tick;
             _midnightTimer.Start();
 
-            // Таймери оптичного шейдера скла
-            _glassDebounceTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(32) // ~30 FPS debounce
-            };
-            _glassDebounceTimer.Tick += (s, e) =>
-            {
-                _glassDebounceTimer.Stop();
-                if (!_isDragging) UpdateCascadeGlass();
-            };
-
-            _glassRefreshTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(400) // Background idle refresh
-            };
-            _glassRefreshTimer.Tick += (s, e) =>
-            {
-                // Skip refresh completely while user is dragging — freeze frame is active
-                if (!_isDragging && IsLoaded && Visibility == Visibility.Visible && !_isUpdatingGlass)
-                {
-                    UpdateCascadeGlass();
-                }
-            };
-            _glassRefreshTimer.Start();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             ApplyWindowPositionAndState();
+
+            try
+            {
+                var dpi = VisualTreeHelper.GetDpi(this);
+                _dpiScaleX = dpi.DpiScaleX;
+                _dpiScaleY = dpi.DpiScaleY;
+            }
+            catch { }
+            UpdateRingRelativeOffset();
+
+            SizeChanged += (s, ev) =>
+            {
+                UpdateRingRelativeOffset();
+                UpdateGlassViewboxes();
+            };
 
             // Трей Windows
             _trayHelper.Initialize(this, "CalWidget - Калькулятор калорій та БЖВ");
@@ -172,8 +163,8 @@ namespace CalWidget
             // Запускаємо плавну вхідну анімацію від 0 до поточного прогресу
             UpdateUi(animate: true);
 
-            // Генеруємо оптичне заломлення фону Fluted Glass
-            Dispatcher.BeginInvoke(new Action(() => UpdateCascadeGlass(true)), DispatcherPriority.Loaded);
+            // Генеруємо оптичне заломлення фону Fluted Glass зі шпалер робочого столу (Варіант 2)
+            Dispatcher.BeginInvoke(new Action(InitWallpaperGlass), DispatcherPriority.Loaded);
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -186,17 +177,14 @@ namespace CalWidget
                 IntPtr hwnd = helper.EnsureHandle();
                 if (hwnd != IntPtr.Zero)
                 {
-                    // Виключаємо вікно віджета зі знімків екрана (Win32 BitBlt захоплює чистий фон позаду нас!)
-                    NativeMethods.SetWindowDisplayAffinity(hwnd, NativeMethods.WDA_EXCLUDEFROMCAPTURE);
-
-                    // Додаємо Win32 HwndSourceHook для реального часу 60 FPS при перетягуванні вікна мишею
+                    // Додаємо Win32 HwndSourceHook для миттєвого оновлення GPU Viewbox (144+ FPS)
                     var source = System.Windows.Interop.HwndSource.FromHwnd(hwnd);
                     source?.AddHook(WndProc);
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Affinity error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"SourceInitialized error: {ex.Message}");
             }
 
             WindowGlassHelper.ApplyFrostedGlass(this, _settings.CurrentTheme == "Dark");
@@ -204,31 +192,38 @@ namespace CalWidget
 
         private const int WM_MOVE = 0x0003;
         private const int WM_MOVING = 0x0216;
-        private const int WM_ENTERSIZEMOVE = 0x0231;
         private const int WM_EXITSIZEMOVE  = 0x0232;
-        private bool _isDragging = false;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             switch (msg)
             {
-                case WM_ENTERSIZEMOVE:
-                    // Початок перетягування — фіксуємо текстуру скла.
-                    // Це виключає затримки GDI BitBlt / DWM і гарантує максимальний фреймрейт монітора (144+ FPS) без дьоргання!
-                    _isDragging = true;
-                    _glassDebounceTimer.Stop();
-                    break;
-
-                case WM_EXITSIZEMOVE:
-                    // Завершення перетягування — відразу оновлюємо фон та кільця
-                    _isDragging = false;
-                    UpdateCascadeGlass(force: true);
-                    SaveWindowPosition();
+                case WM_MOVING:
+                    unsafe
+                    {
+                        RECT* pRect = (RECT*)lParam;
+                        UpdateGlassViewboxesDirect(pRect->Left, pRect->Top, pRect->Right - pRect->Left, pRect->Bottom - pRect->Top);
+                    }
                     break;
 
                 case WM_MOVE:
-                case WM_MOVING:
-                    // Під час перетягування не блокуємо UI-потік захопленнями екрана
+                    short x = (short)(lParam.ToInt64() & 0xFFFF);
+                    short y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+                    UpdateGlassViewboxesDirect(x, y, ActualWidth * _dpiScaleX, ActualHeight * _dpiScaleY);
+                    break;
+
+                case WM_EXITSIZEMOVE:
+                    UpdateGlassViewboxes();
+                    SaveWindowPosition();
                     break;
             }
             return IntPtr.Zero;
@@ -237,12 +232,7 @@ namespace CalWidget
         protected override void OnLocationChanged(EventArgs e)
         {
             base.OnLocationChanged(e);
-            // Оновлюємо скло лише коли вікно не знаходиться у стані DragMove мишею
-            if (!_isDragging && IsLoaded && Visibility == Visibility.Visible)
-            {
-                _glassDebounceTimer.Stop();
-                _glassDebounceTimer.Start();
-            }
+            UpdateGlassViewboxes();
         }
 
         private void UpdateThemeIcon(string theme)
@@ -259,7 +249,7 @@ namespace CalWidget
             _settings.CurrentTheme = ThemeManager.CurrentTheme;
             _storageService.SaveSettings(_settings);
             UpdateThemeIcon(ThemeManager.CurrentTheme);
-            UpdateCascadeGlass();
+            InitWallpaperGlass();
         }
 
         private void ApplyWindowPositionAndState()
@@ -978,49 +968,65 @@ namespace CalWidget
             }
         }
 
-        private WriteableBitmap? _glassBitmap;
-        private int _glassW = 0;
-        private int _glassH = 0;
-        private int _lastScreenX = int.MinValue;
-        private int _lastScreenY = int.MinValue;
+        private WriteableBitmap? _masterGlassBitmap;
+        private WriteableBitmap? _fatsGlassBitmap;
+        private WriteableBitmap? _proteinGlassBitmap;
+        private WriteableBitmap? _carbsGlassBitmap;
+        private double _virtualLeft = 0;
+        private double _virtualTop = 0;
+        private double _dpiScaleX = 1.0;
+        private double _dpiScaleY = 1.0;
+        private double _ringRelX = 52.0;
+        private double _ringRelY = 46.0;
+        private double _lastScreenLeft = double.NaN;
+        private double _lastScreenTop = double.NaN;
 
-        // Fluted Glass WriteableBitmaps для кілець БЖВ (захоплюють саму область кільця на екрані)
-        private WriteableBitmap? _ringFatsBitmap;
-        private WriteableBitmap? _ringProteinBitmap;
-        private WriteableBitmap? _ringCarbsBitmap;
-        private int _ringBitmapSize = 0; // фізичний розмір квадрата кільця в пікселях (196 WPF × DPI)
+        public void UpdateRingRelativeOffset()
+        {
+            if (RingGridContainer != null && RingGridContainer.IsVisible && PresentationSource.FromVisual(this) != null)
+            {
+                try
+                {
+                    GeneralTransform transform = RingGridContainer.TransformToAncestor(this);
+                    Point p = transform.Transform(new Point(0, 0));
+                    _ringRelX = p.X;
+                    _ringRelY = p.Y;
+                }
+                catch { }
+            }
+        }
 
         /// <summary>
-        /// Оновлює оптичний ефект рифленого скла Fluted Glass (Paper Design)
-        /// Використовує in-place рендеринг у поновлюваний WriteableBitmap для досягнення 60 FPS без дьоргань.
+        /// Ініціалізує текстури рифленого скла високої роздільної здатності на основі активних шпалер Windows (Варіант 2).
+        /// Генерація відбувається паралельно на всіх ядрах CPU (~20 мс), після чого позиціонування під час DragMove виконується миттєво через GPU ImageBrush.Viewbox (144+ FPS).
         /// </summary>
-        public void UpdateCascadeGlass(bool force = false)
+        public void InitWallpaperGlass()
         {
-            if (!IsLoaded || Visibility != Visibility.Visible || PresentationSource.FromVisual(this) == null) return;
             if (_isUpdatingGlass) return;
             _isUpdatingGlass = true;
 
             try
             {
-                // Отримуємо фізичні координати та розміри вікна на екрані з урахуванням системного DPI
-                Point tl = PointToScreen(new Point(0, 0));
-                Point br = PointToScreen(new Point(ActualWidth, ActualHeight));
+                _virtualLeft = SystemParameters.VirtualScreenLeft;
+                _virtualTop = SystemParameters.VirtualScreenTop;
+                int virtW = Math.Max(1920, (int)Math.Round(SystemParameters.PrimaryScreenWidth));
+                int virtH = Math.Max(1080, (int)Math.Round(SystemParameters.PrimaryScreenHeight));
 
-                int screenX = (int)Math.Round(tl.X);
-                int screenY = (int)Math.Round(tl.Y);
-                int pixelW = Math.Max(100, (int)Math.Round(br.X - tl.X));
-                int pixelH = Math.Max(100, (int)Math.Round(br.Y - tl.Y));
-
-                // Якщо вікно не рухалося та розмір не змінився — пропускаємо оновлення (Zero jitter, Zero CPU!)
-                if (!force && screenX == _lastScreenX && screenY == _lastScreenY && pixelW == _glassW && pixelH == _glassH)
+                byte[]? rawPixels = WallpaperHelper.LoadWallpaperPixels(virtW, virtH, out int w, out int h);
+                if (rawPixels == null)
                 {
-                    return;
+                    rawPixels = new byte[virtW * virtH * 4];
+                    byte bg = (byte)(ThemeManager.CurrentTheme == "Dark" ? 22 : 242);
+                    for (int i = 0; i < rawPixels.Length; i += 4)
+                    {
+                        rawPixels[i + 0] = bg;
+                        rawPixels[i + 1] = bg;
+                        rawPixels[i + 2] = bg;
+                        rawPixels[i + 3] = 255;
+                    }
                 }
 
-                _lastScreenX = screenX;
-                _lastScreenY = screenY;
-
-                var options = new FlutedGlassOptions
+                var baseOpts = new FlutedGlassOptions
                 {
                     EnableFlutedGlass = _settings.EnableFlutedGlass,
                     GlassOpacity = _settings.GlassOpacity,
@@ -1032,113 +1038,146 @@ namespace CalWidget
                     IsDarkTheme = ThemeManager.CurrentTheme == "Dark"
                 };
 
-                // ════════════════════════════════════════════════════════════
-                // 1. Фонове вікно — нейтральний frost/mica ефект
-                // ════════════════════════════════════════════════════════════
-                if (_glassBitmap == null || _glassW != pixelW || _glassH != pixelH)
+                // 2. Кільце Жирів (Amber)
+                var fatOpts = new FlutedGlassOptions
                 {
-                    _glassW = pixelW;
-                    _glassH = pixelH;
-                    _glassBitmap = new WriteableBitmap(pixelW, pixelH, 96, 96, PixelFormats.Bgra32, null);
-                    if (CascadeGlassBrush != null)
-                    {
-                        CascadeGlassBrush.ImageSource = _glassBitmap;
-                    }
-                }
+                    EnableFlutedGlass = baseOpts.EnableFlutedGlass,
+                    GlassOpacity = 0.30,
+                    StripeWidth = Math.Max(4, baseOpts.StripeWidth),
+                    Distortion = baseOpts.Distortion,
+                    Shadows = 0.45,
+                    BlurRadius = baseOpts.BlurRadius,
+                    Edges = baseOpts.Edges,
+                    IsDarkTheme = baseOpts.IsDarkTheme,
+                    TintR = 245f,
+                    TintG = 158f,
+                    TintB = 11f,
+                    TintOpacity = 0.40f
+                };
 
-                FlutedGlassGenerator.RenderCascadeGlassIntoBitmap(_glassBitmap, screenX, screenY, pixelW, pixelH, options);
-
-                // ════════════════════════════════════════════════════════════
-                // 2. Кільця БЖВ — той самий Fluted Glass шейдер + кольоровий tint (amber / blue / red)
-                // Під час активного перетягування мишкою (_isDragging) пропускаємо 3 додаткові BitBlt захоплення кілець,
-                // щоб забезпечити максимальний 60 FPS фреймрейт вікна. Як тільки вікно зупиняється/відпускається, кільця миттєво оновлюються.
-                // ════════════════════════════════════════════════════════════
-                if (_settings.EnableFlutedGlass && !_isDragging)
+                // 3. Кільце Білка (Sky-blue)
+                var protOpts = new FlutedGlassOptions
                 {
-                    // Фізичний розмір Grid 196×196 WPF-пікселів в пікселях екрана
-                    double dpiScale = Math.Max(1.0, pixelW / Math.Max(1, ActualWidth));
-                    int ringPx = Math.Max(60, (int)Math.Round(196.0 * dpiScale));
+                    EnableFlutedGlass = baseOpts.EnableFlutedGlass,
+                    GlassOpacity = 0.30,
+                    StripeWidth = Math.Max(4, baseOpts.StripeWidth),
+                    Distortion = baseOpts.Distortion,
+                    Shadows = 0.45,
+                    BlurRadius = baseOpts.BlurRadius,
+                    Edges = baseOpts.Edges,
+                    IsDarkTheme = baseOpts.IsDarkTheme,
+                    TintR = 59f,
+                    TintG = 130f,
+                    TintB = 246f,
+                    TintOpacity = 0.40f
+                };
 
-                    // Offset до центру Grid кілець (відносно лівого-верхнього кута вікна)
-                    Point ringTL = RingGridContainer != null
-                        ? RingGridContainer.PointToScreen(new Point(0, 0))
-                        : new Point(screenX + (pixelW - ringPx) / 2, screenY + 60);
+                // 4. Кільце Вуглеводів (Coral-red)
+                var carbsOpts = new FlutedGlassOptions
+                {
+                    EnableFlutedGlass = baseOpts.EnableFlutedGlass,
+                    GlassOpacity = 0.30,
+                    StripeWidth = Math.Max(4, baseOpts.StripeWidth),
+                    Distortion = baseOpts.Distortion,
+                    Shadows = 0.45,
+                    BlurRadius = baseOpts.BlurRadius,
+                    Edges = baseOpts.Edges,
+                    IsDarkTheme = baseOpts.IsDarkTheme,
+                    TintR = 239f,
+                    TintG = 68f,
+                    TintB = 68f,
+                    TintOpacity = 0.40f
+                };
 
-                    int ringScreenX = (int)Math.Round(ringTL.X);
-                    int ringScreenY = (int)Math.Round(ringTL.Y);
+                // Генерація всіх 4 текстур паралельно на всіх ядрах CPU (~20 мс)
+                Parallel.Invoke(
+                    () => _masterGlassBitmap = FlutedGlassGenerator.CreateWallpaperGlassBitmap(rawPixels, virtW, virtH, baseOpts),
+                    () => _fatsGlassBitmap = FlutedGlassGenerator.CreateWallpaperGlassBitmap(rawPixels, virtW, virtH, fatOpts),
+                    () => _proteinGlassBitmap = FlutedGlassGenerator.CreateWallpaperGlassBitmap(rawPixels, virtW, virtH, protOpts),
+                    () => _carbsGlassBitmap = FlutedGlassGenerator.CreateWallpaperGlassBitmap(rawPixels, virtW, virtH, carbsOpts)
+                );
 
-                    if (_ringBitmapSize != ringPx)
-                    {
-                        _ringBitmapSize = ringPx;
-                        _ringFatsBitmap = new WriteableBitmap(ringPx, ringPx, 96, 96, PixelFormats.Bgra32, null);
-                        _ringProteinBitmap = new WriteableBitmap(ringPx, ringPx, 96, 96, PixelFormats.Bgra32, null);
-                        _ringCarbsBitmap = new WriteableBitmap(ringPx, ringPx, 96, 96, PixelFormats.Bgra32, null);
+                if (CascadeGlassBrush != null) CascadeGlassBrush.ImageSource = _masterGlassBitmap;
+                if (RingFatsGlassBrush != null) RingFatsGlassBrush.ImageSource = _fatsGlassBitmap;
+                if (RingProteinGlassBrush != null) RingProteinGlassBrush.ImageSource = _proteinGlassBitmap;
+                if (RingCarbsGlassBrush != null) RingCarbsGlassBrush.ImageSource = _carbsGlassBitmap;
 
-                        if (RingFatsGlassImage != null) RingFatsGlassImage.Source = _ringFatsBitmap;
-                        if (RingProteinGlassImage != null) RingProteinGlassImage.Source = _ringProteinBitmap;
-                        if (RingCarbsGlassImage != null) RingCarbsGlassImage.Source = _ringCarbsBitmap;
-                    }
-
-                    // Опції для кілець: ті самі налаштування, але з меншою прозорістю та кольором
-                    var ringBaseOpts = new FlutedGlassOptions
-                    {
-                        EnableFlutedGlass = true,
-                        GlassOpacity = 0.30,
-                        StripeWidth = Math.Max(4, _settings.RibWidth),
-                        Distortion = _settings.RibDistortion,
-                        Shadows = 0.45,
-                        BlurRadius = _settings.BlurRadius,
-                        Edges = 0.32,
-                        IsDarkTheme = ThemeManager.CurrentTheme == "Dark",
-                        TintOpacity = 0.40f,
-                    };
-
-                    // Кільце ЖИРІВ — amber #F59E0B
-                    var fatOpts = new FlutedGlassOptions
-                    {
-                        EnableFlutedGlass = ringBaseOpts.EnableFlutedGlass, GlassOpacity = ringBaseOpts.GlassOpacity,
-                        StripeWidth = ringBaseOpts.StripeWidth, Distortion = ringBaseOpts.Distortion,
-                        Shadows = ringBaseOpts.Shadows, BlurRadius = ringBaseOpts.BlurRadius,
-                        Edges = ringBaseOpts.Edges, IsDarkTheme = ringBaseOpts.IsDarkTheme,
-                        TintR = 245f, TintG = 158f, TintB = 11f, TintOpacity = ringBaseOpts.TintOpacity
-                    };
-
-                    // Кільце БІЛКА — sky-blue #3B82F6
-                    var protOpts = new FlutedGlassOptions
-                    {
-                        EnableFlutedGlass = ringBaseOpts.EnableFlutedGlass, GlassOpacity = ringBaseOpts.GlassOpacity,
-                        StripeWidth = ringBaseOpts.StripeWidth, Distortion = ringBaseOpts.Distortion,
-                        Shadows = ringBaseOpts.Shadows, BlurRadius = ringBaseOpts.BlurRadius,
-                        Edges = ringBaseOpts.Edges, IsDarkTheme = ringBaseOpts.IsDarkTheme,
-                        TintR = 59f, TintG = 130f, TintB = 246f, TintOpacity = ringBaseOpts.TintOpacity
-                    };
-
-                    // Кільце ВУГЛЕВОДІВ — coral-red #EF4444
-                    var carbsOpts = new FlutedGlassOptions
-                    {
-                        EnableFlutedGlass = ringBaseOpts.EnableFlutedGlass, GlassOpacity = ringBaseOpts.GlassOpacity,
-                        StripeWidth = ringBaseOpts.StripeWidth, Distortion = ringBaseOpts.Distortion,
-                        Shadows = ringBaseOpts.Shadows, BlurRadius = ringBaseOpts.BlurRadius,
-                        Edges = ringBaseOpts.Edges, IsDarkTheme = ringBaseOpts.IsDarkTheme,
-                        TintR = 239f, TintG = 68f, TintB = 68f, TintOpacity = ringBaseOpts.TintOpacity
-                    };
-
-                    if (_ringFatsBitmap != null)
-                        FlutedGlassGenerator.RenderRingGlassIntoBitmap(_ringFatsBitmap, ringScreenX, ringScreenY, ringPx, ringPx, fatOpts);
-                    if (_ringProteinBitmap != null)
-                        FlutedGlassGenerator.RenderRingGlassIntoBitmap(_ringProteinBitmap, ringScreenX, ringScreenY, ringPx, ringPx, protOpts);
-                    if (_ringCarbsBitmap != null)
-                        FlutedGlassGenerator.RenderRingGlassIntoBitmap(_ringCarbsBitmap, ringScreenX, ringScreenY, ringPx, ringPx, carbsOpts);
-                }
+                UpdateRingRelativeOffset();
+                UpdateGlassViewboxes();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"UpdateCascadeGlass error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"InitWallpaperGlass error: {ex.Message}");
             }
             finally
             {
                 _isUpdatingGlass = false;
             }
+        }
+
+        /// <summary>
+        /// Оновлює Viewbox прямокутники семплінгу шпалер на GPU.
+        /// </summary>
+        public void UpdateGlassViewboxes()
+        {
+            if (!IsLoaded || Visibility != Visibility.Visible || PresentationSource.FromVisual(this) == null) return;
+
+            try
+            {
+                Point tl = PointToScreen(new Point(0, 0));
+                Point br = PointToScreen(new Point(ActualWidth, ActualHeight));
+                UpdateGlassViewboxesDirect(tl.X, tl.Y, br.X - tl.X, br.Y - tl.Y);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateGlassViewboxes error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Миттєво оновлює прямокутники GPU Viewbox за абсолютними піксельними координатами екрана (0.001 мс, 144+ FPS).
+        /// </summary>
+        private void UpdateGlassViewboxesDirect(double screenLeft, double screenTop, double screenW, double screenH)
+        {
+            if (Math.Abs(screenLeft - _lastScreenLeft) < 0.25 && Math.Abs(screenTop - _lastScreenTop) < 0.25)
+            {
+                return;
+            }
+            _lastScreenLeft = screenLeft;
+            _lastScreenTop = screenTop;
+
+            double screenX = screenLeft - _virtualLeft;
+            double screenY = screenTop - _virtualTop;
+
+            if (CascadeGlassBrush != null)
+            {
+                CascadeGlassBrush.Viewbox = new Rect(screenX, screenY, Math.Max(10, screenW), Math.Max(10, screenH));
+            }
+
+            if (RingGridContainer != null && RingGridContainer.IsVisible)
+            {
+                double dpi = screenW / Math.Max(1, ActualWidth);
+                double ringScreenX = screenX + (_ringRelX * dpi);
+                double ringScreenY = screenY + (_ringRelY * dpi);
+
+                if (RingFatsGlassBrush != null)
+                {
+                    RingFatsGlassBrush.Viewbox = new Rect(ringScreenX + (11.0 * dpi), ringScreenY + (11.0 * dpi), 174.0 * dpi, 174.0 * dpi);
+                }
+                if (RingProteinGlassBrush != null)
+                {
+                    RingProteinGlassBrush.Viewbox = new Rect(ringScreenX + (24.0 * dpi), ringScreenY + (24.0 * dpi), 148.0 * dpi, 148.0 * dpi);
+                }
+                if (RingCarbsGlassBrush != null)
+                {
+                    RingCarbsGlassBrush.Viewbox = new Rect(ringScreenX + (37.0 * dpi), ringScreenY + (37.0 * dpi), 122.0 * dpi, 122.0 * dpi);
+                }
+            }
+        }
+
+        public void UpdateCascadeGlass(bool force = false)
+        {
+            InitWallpaperGlass();
         }
     }
 }

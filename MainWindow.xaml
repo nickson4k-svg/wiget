@@ -117,9 +117,10 @@
             CornerRadius="20"
             BorderBrush="{DynamicResource WindowGlassBorderBrush}"
             BorderThickness="1"
-            ClipToBounds="True">
+            ClipToBounds="True"
+            RenderOptions.BitmapScalingMode="Linear">
         <Border.Background>
-            <ImageBrush x:Name="CascadeGlassBrush" Stretch="Fill" />
+            <ImageBrush x:Name="CascadeGlassBrush" Stretch="Fill" ViewboxUnits="Absolute" TileMode="FlipXY" />
         </Border.Background>
 
         <Grid>
@@ -234,13 +235,16 @@
                         <!-- OUTER RING: FATS — Liquid Glass Tube (R=87, D=174)     -->
                         <!-- ═══════════════════════════════════════════════════════ -->
 
-                        <!-- T1: Fluted Glass tube body — живе зображення робочого столу з amber tint, клип у формі кільця -->
-                        <Image x:Name="RingFatsGlassImage"
-                               Width="174" Height="174"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Stretch="Fill"
-                               IsHitTestVisible="False">
-                            <Image.OpacityMask>
+                        <!-- T1: Fluted Glass tube body — живе зображення шпалер з amber tint, клип у формі кільця -->
+                        <Rectangle x:Name="RingFatsGlassRect"
+                                   Width="174" Height="174"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   RenderOptions.BitmapScalingMode="Linear">
+                            <Rectangle.Fill>
+                                <ImageBrush x:Name="RingFatsGlassBrush" Stretch="Fill" ViewboxUnits="Absolute" TileMode="FlipXY" />
+                            </Rectangle.Fill>
+                            <Rectangle.OpacityMask>
                                 <DrawingBrush>
                                     <DrawingBrush.Drawing>
                                         <GeometryDrawing Brush="White">
@@ -258,8 +262,8 @@
                                         </GeometryDrawing>
                                     </DrawingBrush.Drawing>
                                 </DrawingBrush>
-                            </Image.OpacityMask>
-                        </Image>
+                            </Rectangle.OpacityMask>
+                        </Rectangle>
 
                         <!-- T2: Primary top sheen — strong white reflection on upper arc (light source) -->
                         <Ellipse Width="174" Height="174"
@@ -352,12 +356,15 @@
                         <!-- ═══════════════════════════════════════════════════════ -->
 
                         <!-- T1: Fluted Glass tube body — blue tint, клип у формі кільця -->
-                        <Image x:Name="RingProteinGlassImage"
-                               Width="148" Height="148"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Stretch="Fill"
-                               IsHitTestVisible="False">
-                            <Image.OpacityMask>
+                        <Rectangle x:Name="RingProteinGlassRect"
+                                   Width="148" Height="148"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   RenderOptions.BitmapScalingMode="Linear">
+                            <Rectangle.Fill>
+                                <ImageBrush x:Name="RingProteinGlassBrush" Stretch="Fill" ViewboxUnits="Absolute" TileMode="FlipXY" />
+                            </Rectangle.Fill>
+                            <Rectangle.OpacityMask>
                                 <DrawingBrush>
                                     <DrawingBrush.Drawing>
                                         <GeometryDrawing Brush="White">
@@ -375,8 +382,8 @@
                                         </GeometryDrawing>
                                     </DrawingBrush.Drawing>
                                 </DrawingBrush>
-                            </Image.OpacityMask>
-                        </Image>
+                            </Rectangle.OpacityMask>
+                        </Rectangle>
 
                         <!-- T2: Primary top sheen -->
                         <Ellipse Width="148" Height="148"
@@ -469,12 +476,15 @@
                         <!-- ═══════════════════════════════════════════════════════ -->
 
                         <!-- T1: Fluted Glass tube body — red tint, клип у формі кільця -->
-                        <Image x:Name="RingCarbsGlassImage"
-                               Width="122" Height="122"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Stretch="Fill"
-                               IsHitTestVisible="False">
-                            <Image.OpacityMask>
+                        <Rectangle x:Name="RingCarbsGlassRect"
+                                   Width="122" Height="122"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   RenderOptions.BitmapScalingMode="Linear">
+                            <Rectangle.Fill>
+                                <ImageBrush x:Name="RingCarbsGlassBrush" Stretch="Fill" ViewboxUnits="Absolute" TileMode="FlipXY" />
+                            </Rectangle.Fill>
+                            <Rectangle.OpacityMask>
                                 <DrawingBrush>
                                     <DrawingBrush.Drawing>
                                         <GeometryDrawing Brush="White">
@@ -492,8 +502,8 @@
                                         </GeometryDrawing>
                                     </DrawingBrush.Drawing>
                                 </DrawingBrush>
-                            </Image.OpacityMask>
-                        </Image>
+                            </Rectangle.OpacityMask>
+                        </Rectangle>
 
                         <!-- T2: Primary top sheen -->
                         <Ellipse Width="122" Height="122"

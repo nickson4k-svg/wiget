@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -92,6 +93,22 @@ namespace CalWidget.Helpers
 
             var wb = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
             RenderCascadeGlassIntoBitmap(wb, screenX, screenY, width, height, options);
+            return wb;
+        }
+
+        /// <summary>
+        /// Створює попередньо згенерований WriteableBitmap скла з вихідних пікселів шпалер або робочого столу.
+        /// Заморожує (Freeze) для прямого апаратного семплінгу GPU через ImageBrush.Viewbox на 144+ FPS.
+        /// </summary>
+        public static WriteableBitmap CreateWallpaperGlassBitmap(byte[] sourcePixels, int width, int height, FlutedGlassOptions options)
+        {
+            if (width <= 0) width = 1920;
+            if (height <= 0) height = 1080;
+
+            var wb = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+            byte[] displaced = new byte[width * height * 4];
+            ProcessCascadeGlassIntoBitmap(wb, sourcePixels, displaced, width, height, options);
+            wb.Freeze();
             return wb;
         }
 
@@ -225,10 +242,13 @@ namespace CalWidget.Helpers
                 {
                     int stride = width * 4;
 
-                    for (int y = 0; y < height; y++)
+                    IntPtr pSrcPtr = (IntPtr)pSrc;
+                    IntPtr pDispPtr = (IntPtr)pDisp;
+
+                    Parallel.For(0, height, y =>
                     {
-                        byte* rowSrc = pSrc + (y * stride);
-                        byte* rowDisp = pDisp + (y * stride);
+                        byte* rowSrc = (byte*)pSrcPtr + (y * stride);
+                        byte* rowDisp = (byte*)pDispPtr + (y * stride);
 
                         for (int x = 0; x < width; x++)
                         {
@@ -241,7 +261,7 @@ namespace CalWidget.Helpers
                             rowDisp[dstIdx + 2] = rowSrc[srcIdx + 2]; // R
                             rowDisp[dstIdx + 3] = 255;                // A
                         }
-                    }
+                    });
                 }
             }
 
@@ -255,6 +275,9 @@ namespace CalWidget.Helpers
 
                     fixed (byte* pDisp = displacedPixels)
                     {
+                        IntPtr pDstPtr = (IntPtr)pDst;
+                        IntPtr pDispPtr = (IntPtr)pDisp;
+
                         // Нейтральний tint вікна (frost/mica), або кольоровий tint кільця (amber/blue/red)
                         float neutralR = options.IsDarkTheme ? 20f : 250f;
                         float neutralG = options.IsDarkTheme ? 22f : 252f;
@@ -269,10 +292,10 @@ namespace CalWidget.Helpers
 
                         if (blurR <= 0)
                         {
-                            for (int y = 0; y < height; y++)
+                            Parallel.For(0, height, y =>
                             {
-                                byte* rowDisp = pDisp + (y * stride);
-                                byte* outRow = pDst + (y * stride);
+                                byte* rowDisp = (byte*)pDispPtr + (y * stride);
+                                byte* outRow = (byte*)pDstPtr + (y * stride);
 
                                 for (int x = 0; x < width; x++)
                                 {
@@ -302,12 +325,15 @@ namespace CalWidget.Helpers
                                     outRow[idx + 2] = (byte)Math.Clamp((int)finalR, 0, 255);
                                     outRow[idx + 3] = 255;
                                 }
-                            }
+                            });
                         }
                         else
                         {
-                            for (int x = 0; x < width; x++)
+                            Parallel.For(0, width, x =>
                             {
+                                byte* pDispLocal = (byte*)pDispPtr;
+                                byte* pDstLocal = (byte*)pDstPtr;
+
                                 float shadow = lutShadow[x];
                                 float lightMul = (1.0f - shadow);
 
@@ -318,9 +344,9 @@ namespace CalWidget.Helpers
                                 for (int y = 0; y <= startLimit; y++)
                                 {
                                     int idx = (y * width + x) * 4;
-                                    sumB += pDisp[idx + 0];
-                                    sumG += pDisp[idx + 1];
-                                    sumR += pDisp[idx + 2];
+                                    sumB += pDispLocal[idx + 0];
+                                    sumG += pDispLocal[idx + 1];
+                                    sumR += pDispLocal[idx + 2];
                                     count++;
                                 }
 
@@ -330,9 +356,9 @@ namespace CalWidget.Helpers
                                     if (addY < height && addY > startLimit)
                                     {
                                         int addIdx = (addY * width + x) * 4;
-                                        sumB += pDisp[addIdx + 0];
-                                        sumG += pDisp[addIdx + 1];
-                                        sumR += pDisp[addIdx + 2];
+                                        sumB += pDispLocal[addIdx + 0];
+                                        sumG += pDispLocal[addIdx + 1];
+                                        sumR += pDispLocal[addIdx + 2];
                                         count++;
                                     }
 
@@ -340,9 +366,9 @@ namespace CalWidget.Helpers
                                     if (remY >= 0)
                                     {
                                         int remIdx = (remY * width + x) * 4;
-                                        sumB -= pDisp[remIdx + 0];
-                                        sumG -= pDisp[remIdx + 1];
-                                        sumR -= pDisp[remIdx + 2];
+                                        sumB -= pDispLocal[remIdx + 0];
+                                        sumG -= pDispLocal[remIdx + 1];
+                                        sumR -= pDispLocal[remIdx + 2];
                                         count--;
                                     }
 
@@ -363,7 +389,7 @@ namespace CalWidget.Helpers
                                         finalB = (finalB * (1.0f - ringTintOpacity)) + (ringTintB * ringTintOpacity);
                                     }
 
-                                    byte* outRow = pDst + (y * stride);
+                                    byte* outRow = pDstLocal + (y * stride);
                                     int outIdx = x * 4;
 
                                     outRow[outIdx + 0] = (byte)Math.Clamp((int)finalB, 0, 255);
@@ -371,7 +397,7 @@ namespace CalWidget.Helpers
                                     outRow[outIdx + 2] = (byte)Math.Clamp((int)finalR, 0, 255);
                                     outRow[outIdx + 3] = 255;
                                 }
-                            }
+                            });
                         }
                     }
                 }
