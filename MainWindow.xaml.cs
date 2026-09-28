@@ -290,6 +290,11 @@ namespace CalWidget
             Top = workArea.Bottom - Height - 24;
         }
 
+        private bool _isCustomDragging = false;
+        private NativeMethods.POINT _dragStartCursorPos;
+        private double _dragStartLeft;
+        private double _dragStartTop;
+
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
@@ -299,11 +304,50 @@ namespace CalWidget
                     MoveToPrimaryScreen();
                     return;
                 }
-                try
+
+                // Глобальне відстеження курсора: повністю усуває застрягання на другому моніторі
+                // та блокування межами моніторів (Aero Snap)
+                if (NativeMethods.GetCursorPos(out var pt))
                 {
-                    DragMove();
+                    _dragStartCursorPos = pt;
+                    _dragStartLeft = Left;
+                    _dragStartTop = Top;
+                    _isCustomDragging = true;
+                    CaptureMouse();
                 }
-                catch { }
+            }
+        }
+
+        private void Window_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_isCustomDragging)
+            {
+                if (e.LeftButton == MouseButtonState.Pressed && NativeMethods.GetCursorPos(out var pt))
+                {
+                    double deltaX = (pt.X - _dragStartCursorPos.X) / _dpiScaleX;
+                    double deltaY = (pt.Y - _dragStartCursorPos.Y) / _dpiScaleY;
+
+                    Left = _dragStartLeft + deltaX;
+                    Top = _dragStartTop + deltaY;
+
+                    UpdateGlassViewboxes();
+                }
+                else
+                {
+                    _isCustomDragging = false;
+                    ReleaseMouseCapture();
+                    SaveWindowPosition();
+                }
+            }
+        }
+
+        private void Window_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_isCustomDragging)
+            {
+                _isCustomDragging = false;
+                ReleaseMouseCapture();
+                SaveWindowPosition();
             }
         }
 
@@ -1042,8 +1086,8 @@ namespace CalWidget
             {
                 _virtualLeft = SystemParameters.VirtualScreenLeft;
                 _virtualTop = SystemParameters.VirtualScreenTop;
-                int virtW = Math.Max(1920, (int)Math.Round(SystemParameters.PrimaryScreenWidth));
-                int virtH = Math.Max(1080, (int)Math.Round(SystemParameters.PrimaryScreenHeight));
+                int virtW = Math.Max(1920, (int)Math.Round(SystemParameters.VirtualScreenWidth));
+                int virtH = Math.Max(1080, (int)Math.Round(SystemParameters.VirtualScreenHeight));
 
                 byte[]? rawPixels = WallpaperHelper.LoadWallpaperPixels(virtW, virtH, out int w, out int h);
                 if (rawPixels == null)

@@ -19,6 +19,8 @@
         TextOptions.TextRenderingMode="ClearType"
         TextOptions.TextFormattingMode="Display"
         MouseDown="Window_MouseDown"
+        MouseMove="Window_MouseMove"
+        MouseUp="Window_MouseUp"
         Loaded="Window_Loaded"
         Closing="Window_Closing">
 
