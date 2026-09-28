@@ -25,6 +25,7 @@
     <Window.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Показати / Сховати" Click="TrayShowHide_Click" />
+            <MenuItem Header="📌 Перемістити на головний екран" Click="MoveToPrimaryScreen_Click" />
             <MenuItem Header="+ Додати продукт чи напій..." Click="OpenCatalog_Click" />
             <MenuItem Header="Змінити тему (Світла / Темна)" Click="ThemeToggle_Click" />
             <MenuItem Header="Налаштування норми (BMR / TDEE)" Click="SettingsButton_Click" />
@@ -157,7 +158,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Ліва зона вільна для перетягування вікна мишею -->
-                    <Rectangle Grid.Column="0" Fill="Transparent" IsHitTestVisible="False" />
+                    <Rectangle Grid.Column="0" Fill="Transparent" Cursor="SizeAll" />
 
                     <!-- Кнопки швидких дій праворуч -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">

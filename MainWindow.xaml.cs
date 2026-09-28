@@ -205,26 +205,36 @@ namespace CalWidget
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            switch (msg)
+            try
             {
-                case WM_MOVING:
-                    unsafe
-                    {
-                        RECT* pRect = (RECT*)lParam;
-                        UpdateGlassViewboxesDirect(pRect->Left, pRect->Top, pRect->Right - pRect->Left, pRect->Bottom - pRect->Top);
-                    }
-                    break;
+                switch (msg)
+                {
+                    case WM_MOVING:
+                        unsafe
+                        {
+                            RECT* pRect = (RECT*)lParam;
+                            if (pRect != null)
+                            {
+                                UpdateGlassViewboxesDirect(pRect->Left, pRect->Top, pRect->Right - pRect->Left, pRect->Bottom - pRect->Top);
+                            }
+                        }
+                        break;
 
-                case WM_MOVE:
-                    short x = (short)(lParam.ToInt64() & 0xFFFF);
-                    short y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
-                    UpdateGlassViewboxesDirect(x, y, ActualWidth * _dpiScaleX, ActualHeight * _dpiScaleY);
-                    break;
+                    case WM_MOVE:
+                        short x = (short)(lParam.ToInt64() & 0xFFFF);
+                        short y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+                        UpdateGlassViewboxesDirect(x, y, ActualWidth * _dpiScaleX, ActualHeight * _dpiScaleY);
+                        break;
 
-                case WM_EXITSIZEMOVE:
-                    UpdateGlassViewboxes();
-                    SaveWindowPosition();
-                    break;
+                    case WM_EXITSIZEMOVE:
+                        UpdateGlassViewboxes();
+                        SaveWindowPosition();
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"WndProc error: {ex.Message}");
             }
             return IntPtr.Zero;
         }
@@ -284,9 +294,32 @@ namespace CalWidget
         {
             if (e.ChangedButton == MouseButton.Left)
             {
-                // WM_ENTERSIZEMOVE/WM_EXITSIZEMOVE in WndProc handle freeze/refresh around DragMove
-                DragMove();
+                if (e.ClickCount == 2)
+                {
+                    MoveToPrimaryScreen();
+                    return;
+                }
+                try
+                {
+                    DragMove();
+                }
+                catch { }
             }
+        }
+
+        private void MoveToPrimaryScreen_Click(object sender, RoutedEventArgs e)
+        {
+            MoveToPrimaryScreen();
+        }
+
+        public void MoveToPrimaryScreen()
+        {
+            var workArea = SystemParameters.WorkArea;
+            Left = workArea.Right - Width - 24;
+            Top = workArea.Bottom - Height - 24;
+            SaveWindowPosition();
+            UpdateRingRelativeOffset();
+            UpdateGlassViewboxes();
         }
 
         private void SaveWindowPosition()
@@ -1139,39 +1172,46 @@ namespace CalWidget
         /// </summary>
         private void UpdateGlassViewboxesDirect(double screenLeft, double screenTop, double screenW, double screenH)
         {
-            if (Math.Abs(screenLeft - _lastScreenLeft) < 0.25 && Math.Abs(screenTop - _lastScreenTop) < 0.25)
+            try
             {
-                return;
+                if (Math.Abs(screenLeft - _lastScreenLeft) < 0.25 && Math.Abs(screenTop - _lastScreenTop) < 0.25)
+                {
+                    return;
+                }
+                _lastScreenLeft = screenLeft;
+                _lastScreenTop = screenTop;
+
+                double screenX = screenLeft - _virtualLeft;
+                double screenY = screenTop - _virtualTop;
+
+                if (CascadeGlassBrush != null)
+                {
+                    CascadeGlassBrush.Viewbox = new Rect(screenX, screenY, Math.Max(10, screenW), Math.Max(10, screenH));
+                }
+
+                if (RingGridContainer != null && RingGridContainer.IsVisible)
+                {
+                    double dpi = screenW / Math.Max(1, ActualWidth);
+                    double ringScreenX = screenX + (_ringRelX * dpi);
+                    double ringScreenY = screenY + (_ringRelY * dpi);
+
+                    if (RingFatsGlassBrush != null)
+                    {
+                        RingFatsGlassBrush.Viewbox = new Rect(ringScreenX + (11.0 * dpi), ringScreenY + (11.0 * dpi), 174.0 * dpi, 174.0 * dpi);
+                    }
+                    if (RingProteinGlassBrush != null)
+                    {
+                        RingProteinGlassBrush.Viewbox = new Rect(ringScreenX + (24.0 * dpi), ringScreenY + (24.0 * dpi), 148.0 * dpi, 148.0 * dpi);
+                    }
+                    if (RingCarbsGlassBrush != null)
+                    {
+                        RingCarbsGlassBrush.Viewbox = new Rect(ringScreenX + (37.0 * dpi), ringScreenY + (37.0 * dpi), 122.0 * dpi, 122.0 * dpi);
+                    }
+                }
             }
-            _lastScreenLeft = screenLeft;
-            _lastScreenTop = screenTop;
-
-            double screenX = screenLeft - _virtualLeft;
-            double screenY = screenTop - _virtualTop;
-
-            if (CascadeGlassBrush != null)
+            catch (Exception ex)
             {
-                CascadeGlassBrush.Viewbox = new Rect(screenX, screenY, Math.Max(10, screenW), Math.Max(10, screenH));
-            }
-
-            if (RingGridContainer != null && RingGridContainer.IsVisible)
-            {
-                double dpi = screenW / Math.Max(1, ActualWidth);
-                double ringScreenX = screenX + (_ringRelX * dpi);
-                double ringScreenY = screenY + (_ringRelY * dpi);
-
-                if (RingFatsGlassBrush != null)
-                {
-                    RingFatsGlassBrush.Viewbox = new Rect(ringScreenX + (11.0 * dpi), ringScreenY + (11.0 * dpi), 174.0 * dpi, 174.0 * dpi);
-                }
-                if (RingProteinGlassBrush != null)
-                {
-                    RingProteinGlassBrush.Viewbox = new Rect(ringScreenX + (24.0 * dpi), ringScreenY + (24.0 * dpi), 148.0 * dpi, 148.0 * dpi);
-                }
-                if (RingCarbsGlassBrush != null)
-                {
-                    RingCarbsGlassBrush.Viewbox = new Rect(ringScreenX + (37.0 * dpi), ringScreenY + (37.0 * dpi), 122.0 * dpi, 122.0 * dpi);
-                }
+                System.Diagnostics.Debug.WriteLine($"UpdateGlassViewboxesDirect error: {ex.Message}");
             }
         }
 
