@@ -225,9 +225,9 @@ namespace CalWidget
 
                 case WM_MOVE:
                 case WM_MOVING:
-                    // Плавне оновлення скла в реальному часі під час перетягування (до 60 FPS, ліміт ~16 мс)
+                    // Плавне оновлення скла під час перетягування (до 30 FPS ~33 мс ліміт, без зависання UI)
                     long now = Environment.TickCount64;
-                    if (now - _lastGlassUpdateTick >= 16)
+                    if (now - _lastGlassUpdateTick >= 33)
                     {
                         _lastGlassUpdateTick = now;
                         UpdateCascadeGlass(force: true);
@@ -240,10 +240,11 @@ namespace CalWidget
         protected override void OnLocationChanged(EventArgs e)
         {
             base.OnLocationChanged(e);
-            if (IsLoaded && Visibility == Visibility.Visible)
+            // Якщо вікно рухається не через системний DragMove (наприклад зміна DPI або відновлення з трею)
+            if (!_isDragging && IsLoaded && Visibility == Visibility.Visible)
             {
                 long now = Environment.TickCount64;
-                if (now - _lastGlassUpdateTick >= 16)
+                if (now - _lastGlassUpdateTick >= 33)
                 {
                     _lastGlassUpdateTick = now;
                     UpdateCascadeGlass(force: true);
@@ -1056,16 +1057,16 @@ namespace CalWidget
 
                 // ════════════════════════════════════════════════════════════
                 // 2. Кільця БЖВ — той самий Fluted Glass шейдер + кольоровий tint (amber / blue / red)
-                // Захоплюємо квадрат 196×196 WPF-пікселів (масштабуємо на DPI) з центру відносно вікна
+                // Під час активного перетягування мишкою (_isDragging) пропускаємо 3 додаткові BitBlt захоплення кілець,
+                // щоб забезпечити максимальний 60 FPS фреймрейт вікна. Як тільки вікно зупиняється/відпускається, кільця миттєво оновлюються.
                 // ════════════════════════════════════════════════════════════
-                if (_settings.EnableFlutedGlass)
+                if (_settings.EnableFlutedGlass && !_isDragging)
                 {
                     // Фізичний розмір Grid 196×196 WPF-пікселів в пікселях екрана
                     double dpiScale = Math.Max(1.0, pixelW / Math.Max(1, ActualWidth));
                     int ringPx = Math.Max(60, (int)Math.Round(196.0 * dpiScale));
 
                     // Offset до центру Grid кілець (відносно лівого-верхнього кута вікна)
-                    // RingGrid центровано горизонтально, відступ згори ~Row1 починається після Header
                     Point ringTL = RingGridContainer != null
                         ? RingGridContainer.PointToScreen(new Point(0, 0))
                         : new Point(screenX + (pixelW - ringPx) / 2, screenY + 60);
@@ -1085,21 +1086,21 @@ namespace CalWidget
                         if (RingCarbsGlassImage != null) RingCarbsGlassImage.Source = _ringCarbsBitmap;
                     }
 
-                    // Опції для кілець: ті самі налаштування, але з меншою прозорістю (glass more opaque) та кольором
+                    // Опції для кілець: ті самі налаштування, але з меншою прозорістю та кольором
                     var ringBaseOpts = new FlutedGlassOptions
                     {
                         EnableFlutedGlass = true,
-                        GlassOpacity = 0.30,   // помірна frost-прозорість: видно скло скрізь
+                        GlassOpacity = 0.30,
                         StripeWidth = Math.Max(4, _settings.RibWidth),
                         Distortion = _settings.RibDistortion,
-                        Shadows = 0.45,        // трохи між ребрами глибші — кільця помітніші
+                        Shadows = 0.45,
                         BlurRadius = _settings.BlurRadius,
                         Edges = 0.32,
                         IsDarkTheme = ThemeManager.CurrentTheme == "Dark",
-                        TintOpacity = 0.40f,   // сила кольорового tint — півпрозоре скло з кольором
+                        TintOpacity = 0.40f,
                     };
 
-                    // Кільце ЖИРІВ — amber #F59E0B  →  R=245 G=158 B=11
+                    // Кільце ЖИРІВ — amber #F59E0B
                     var fatOpts = new FlutedGlassOptions
                     {
                         EnableFlutedGlass = ringBaseOpts.EnableFlutedGlass, GlassOpacity = ringBaseOpts.GlassOpacity,
@@ -1109,7 +1110,7 @@ namespace CalWidget
                         TintR = 245f, TintG = 158f, TintB = 11f, TintOpacity = ringBaseOpts.TintOpacity
                     };
 
-                    // Кільце БІЛКА — sky-blue #3B82F6  →  R=59 G=130 B=246
+                    // Кільце БІЛКА — sky-blue #3B82F6
                     var protOpts = new FlutedGlassOptions
                     {
                         EnableFlutedGlass = ringBaseOpts.EnableFlutedGlass, GlassOpacity = ringBaseOpts.GlassOpacity,
@@ -1119,7 +1120,7 @@ namespace CalWidget
                         TintR = 59f, TintG = 130f, TintB = 246f, TintOpacity = ringBaseOpts.TintOpacity
                     };
 
-                    // Кільце ВУГЛЕВОДІВ — coral-red #EF4444  →  R=239 G=68 B=68
+                    // Кільце ВУГЛЕВОДІВ — coral-red #EF4444
                     var carbsOpts = new FlutedGlassOptions
                     {
                         EnableFlutedGlass = ringBaseOpts.EnableFlutedGlass, GlassOpacity = ringBaseOpts.GlassOpacity,
