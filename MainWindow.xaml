@@ -112,15 +112,12 @@
         </Style>
     </Window.Resources>
 
-    <!-- Єдиний кореневий Border віджета: CornerRadius="20", ClipToBounds="True", жодних зовнішніх прямокутників -->
+    <!-- Single root Border: CornerRadius=20, ClipToBounds=True -->
     <Border x:Name="MainContainer"
             CornerRadius="20"
             BorderBrush="{DynamicResource WindowGlassBorderBrush}"
             BorderThickness="1"
             ClipToBounds="True">
-        <Border.CacheMode>
-            <BitmapCache EnableClearType="False" RenderAtScale="1" SnapsToDevicePixels="True" />
-        </Border.CacheMode>
         <Border.Background>
             <ImageBrush x:Name="CascadeGlassBrush" Stretch="Fill" />
         </Border.Background>
@@ -229,84 +226,120 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Row 1: Фітнес-кільця БЖВ (Circular Macro Rings з комфортним радіусом) -->
+                <!-- Row 1: Liquid Glass Macro Rings -->
                 <Grid Grid.Row="1" Margin="0,10,0,10" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Grid Width="190" Height="190">
-                        <!-- Зовнішнє кільце (Жири - R=84): Підкладка -->
-                        <Ellipse Width="168" Height="168"
+                    <Grid Width="196" Height="196">
+
+                        <!-- OUTER RING: FATS (R=87) -->
+                        <!-- Layer 1: Glass tube track (11px, tinted translucent) -->
+                        <Ellipse Width="174" Height="174"
                                  Stroke="{DynamicResource MacroFatTrackBrush}"
-                                 StrokeThickness="7.5"
+                                 StrokeThickness="11"
                                  HorizontalAlignment="Center"
                                  VerticalAlignment="Center" />
-                        <!-- Зовнішнє кільце (Жири): Анімована дуга -->
+                        <!-- Layer 2: Fluid core arc (11px, gradient amber) -->
                         <Path x:Name="RingFatsPath"
-                              Stroke="{DynamicResource MacroFatBrush}"
-                              StrokeThickness="7.5"
+                              StrokeThickness="11"
                               StrokeStartLineCap="Round"
-                              StrokeEndLineCap="Round" />
-                        <!-- Зовнішнє кільце (Жири): Глянцевий відблиск 1.5px -->
+                              StrokeEndLineCap="Round">
+                            <Path.Stroke>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#FBBF24" Offset="0" />
+                                    <GradientStop Color="#F59E0B" Offset="0.5" />
+                                    <GradientStop Color="#D97706" Offset="1" />
+                                </LinearGradientBrush>
+                            </Path.Stroke>
+                            <Path.Effect>
+                                <DropShadowEffect Color="#F59E0B" BlurRadius="10" ShadowDepth="0" Opacity="0.55" />
+                            </Path.Effect>
+                        </Path>
+                        <!-- Layer 3: Specular highlight (1.5px white gloss on arc edge) -->
                         <Path x:Name="RingFatsHighlightPath"
-                              Stroke="#80FFFFFF"
+                              Stroke="#70FFFFFF"
                               StrokeThickness="1.5"
                               StrokeStartLineCap="Round"
                               StrokeEndLineCap="Round" />
 
-                        <!-- Середнє кільце (Білки - R=71): Підкладка -->
-                        <Ellipse Width="142" Height="142"
+                        <!-- MIDDLE RING: PROTEIN (R=74) -->
+                        <!-- Layer 1: Glass tube track -->
+                        <Ellipse Width="148" Height="148"
                                  Stroke="{DynamicResource MacroProteinTrackBrush}"
-                                 StrokeThickness="7.5"
+                                 StrokeThickness="11"
                                  HorizontalAlignment="Center"
                                  VerticalAlignment="Center" />
-                        <!-- Середнє кільце (Білки): Анімована дуга -->
+                        <!-- Layer 2: Fluid core arc (11px, gradient neon blue) -->
                         <Path x:Name="RingProteinPath"
-                              Stroke="{DynamicResource MacroProteinBrush}"
-                              StrokeThickness="7.5"
+                              StrokeThickness="11"
                               StrokeStartLineCap="Round"
-                              StrokeEndLineCap="Round" />
-                        <!-- Середнє кільце (Білки): Глянцевий відблиск 1.5px -->
+                              StrokeEndLineCap="Round">
+                            <Path.Stroke>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#38BDF8" Offset="0" />
+                                    <GradientStop Color="#0284C7" Offset="0.5" />
+                                    <GradientStop Color="#0369A1" Offset="1" />
+                                </LinearGradientBrush>
+                            </Path.Stroke>
+                            <Path.Effect>
+                                <DropShadowEffect Color="#3B82F6" BlurRadius="10" ShadowDepth="0" Opacity="0.55" />
+                            </Path.Effect>
+                        </Path>
+                        <!-- Layer 3: Specular highlight -->
                         <Path x:Name="RingProteinHighlightPath"
-                              Stroke="#80FFFFFF"
+                              Stroke="#70FFFFFF"
                               StrokeThickness="1.5"
                               StrokeStartLineCap="Round"
                               StrokeEndLineCap="Round" />
 
-                        <!-- Внутрішнє кільце (Вуглеводи - R=58): Підкладка -->
-                        <Ellipse Width="116" Height="116"
+                        <!-- INNER RING: CARBS (R=61) -->
+                        <!-- Layer 1: Glass tube track -->
+                        <Ellipse Width="122" Height="122"
                                  Stroke="{DynamicResource MacroCarbsTrackBrush}"
-                                 StrokeThickness="7.5"
+                                 StrokeThickness="11"
                                  HorizontalAlignment="Center"
                                  VerticalAlignment="Center" />
-                        <!-- Внутрішнє кільце (Вуглеводи): Анімована дуга -->
+                        <!-- Layer 2: Fluid core arc (11px, gradient coral-ruby) -->
                         <Path x:Name="RingCarbsPath"
-                              Stroke="{DynamicResource MacroCarbsBrush}"
-                              StrokeThickness="7.5"
+                              StrokeThickness="11"
                               StrokeStartLineCap="Round"
-                              StrokeEndLineCap="Round" />
-                        <!-- Внутрішнє кільце (Вуглеводи): Глянцевий відблиск 1.5px -->
+                              StrokeEndLineCap="Round">
+                            <Path.Stroke>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#FB7185" Offset="0" />
+                                    <GradientStop Color="#E11D48" Offset="0.5" />
+                                    <GradientStop Color="#BE123C" Offset="1" />
+                                </LinearGradientBrush>
+                            </Path.Stroke>
+                            <Path.Effect>
+                                <DropShadowEffect Color="#EF4444" BlurRadius="10" ShadowDepth="0" Opacity="0.55" />
+                            </Path.Effect>
+                        </Path>
+                        <!-- Layer 3: Specular highlight -->
                         <Path x:Name="RingCarbsHighlightPath"
-                              Stroke="#80FFFFFF"
+                              Stroke="#70FFFFFF"
                               StrokeThickness="1.5"
                               StrokeStartLineCap="Round"
                               StrokeEndLineCap="Round" />
 
-                        <!-- Центр кілець: ЛАКОНІЧНІ ТА АКУРАТНІ З'ЇДЕНІ / НОРМА (без перекривання ліній) -->
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8">
-                            <!-- Головна цифра: Кількість з'їдених калорій (акуратний розмір 19.5pt) -->
+                        <!-- Ring center: calories eaten / daily target -->
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6">
                             <TextBlock x:Name="CaloriesEatenText"
                                        Text="0 ккал"
                                        FontSize="19.5"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        HorizontalAlignment="Center"
+                                       TextOptions.TextFormattingMode="Display"
+                                       TextOptions.TextRenderingMode="ClearType"
                                        Typography.NumeralAlignment="Tabular" />
 
-                            <!-- Денна норма (11pt, сірий колір) -->
                             <TextBlock x:Name="CaloriesTargetText"
                                        Text="з 2 100 ккал"
                                        FontSize="11"
                                        Foreground="{DynamicResource TextMutedBrush}"
                                        HorizontalAlignment="Center"
                                        Margin="0,1,0,0"
+                                       TextOptions.TextFormattingMode="Display"
+                                       TextOptions.TextRenderingMode="ClearType"
                                        Typography.NumeralAlignment="Tabular" />
                         </StackPanel>
                     </Grid>
@@ -609,6 +642,8 @@
                                  BorderThickness="0"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 VirtualizingStackPanel.IsVirtualizing="True"
+                                 VirtualizingStackPanel.VirtualizationMode="Recycling"
                                  SelectionChanged="FlyoutFoodListBox_SelectionChanged">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">

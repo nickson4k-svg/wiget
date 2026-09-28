@@ -80,20 +80,20 @@ namespace CalWidget
         // Обробники зміни значень під час DoubleAnimation (оновлюють дуги за тригонометрією, центр 95, 95)
         private void OnFatProgressChanged(double val)
         {
-            RingGeometryHelper.UpdateArcPath(RingFatsPath, new Point(95, 95), 84, val);
-            RingGeometryHelper.UpdateArcPath(RingFatsHighlightPath, new Point(95, 95), 84, val);
+            RingGeometryHelper.UpdateArcPath(RingFatsPath, new Point(98, 98), 87, val);
+            RingGeometryHelper.UpdateArcPath(RingFatsHighlightPath, new Point(98, 98), 87, val);
         }
 
         private void OnProteinProgressChanged(double val)
         {
-            RingGeometryHelper.UpdateArcPath(RingProteinPath, new Point(95, 95), 71, val);
-            RingGeometryHelper.UpdateArcPath(RingProteinHighlightPath, new Point(95, 95), 71, val);
+            RingGeometryHelper.UpdateArcPath(RingProteinPath, new Point(98, 98), 74, val);
+            RingGeometryHelper.UpdateArcPath(RingProteinHighlightPath, new Point(98, 98), 74, val);
         }
 
         private void OnCarbsProgressChanged(double val)
         {
-            RingGeometryHelper.UpdateArcPath(RingCarbsPath, new Point(95, 95), 58, val);
-            RingGeometryHelper.UpdateArcPath(RingCarbsHighlightPath, new Point(95, 95), 58, val);
+            RingGeometryHelper.UpdateArcPath(RingCarbsPath, new Point(98, 98), 61, val);
+            RingGeometryHelper.UpdateArcPath(RingCarbsHighlightPath, new Point(98, 98), 61, val);
         }
 
         private void OnCaloriesCountChanged(double val)
@@ -133,21 +133,22 @@ namespace CalWidget
             // Таймери оптичного шейдера скла
             _glassDebounceTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(16) // ~60 FPS
+                Interval = TimeSpan.FromMilliseconds(32) // ~30 FPS debounce
             };
             _glassDebounceTimer.Tick += (s, e) =>
             {
                 _glassDebounceTimer.Stop();
-                UpdateCascadeGlass();
+                if (!_isDragging) UpdateCascadeGlass();
             };
 
             _glassRefreshTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(250) // Швидкий реактивний відгук
+                Interval = TimeSpan.FromMilliseconds(400) // Background idle refresh
             };
             _glassRefreshTimer.Tick += (s, e) =>
             {
-                if (IsLoaded && Visibility == Visibility.Visible && !_isUpdatingGlass)
+                // Skip refresh completely while user is dragging — freeze frame is active
+                if (!_isDragging && IsLoaded && Visibility == Visibility.Visible && !_isUpdatingGlass)
                 {
                     UpdateCascadeGlass();
                 }
@@ -203,18 +204,37 @@ namespace CalWidget
 
         private const int WM_MOVE = 0x0003;
         private const int WM_MOVING = 0x0216;
+        private const int WM_ENTERSIZEMOVE = 0x0231;
+        private const int WM_EXITSIZEMOVE  = 0x0232;
         private long _lastGlassUpdateTick = 0;
+        // True while the user is actively dragging or resizing the window.
+        // During this time we freeze the glass texture to avoid BitBlt racing DWM.
+        private bool _isDragging = false;
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (msg == WM_MOVE || msg == WM_MOVING)
+            switch (msg)
             {
-                long now = Environment.TickCount64;
-                if (now - _lastGlassUpdateTick >= 16) // ~60 FPS limit
-                {
-                    _lastGlassUpdateTick = now;
-                    UpdateCascadeGlass();
-                }
+                case WM_ENTERSIZEMOVE:
+                    // Window drag/resize started — freeze glass, stop periodic refresh
+                    _isDragging = true;
+                    _glassDebounceTimer.Stop();
+                    break;
+
+                case WM_EXITSIZEMOVE:
+                    // Window drag/resize ended — do exactly one refresh then re-enable
+                    _isDragging = false;
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        UpdateCascadeGlass(force: true);
+                        SaveWindowPosition();
+                    }), DispatcherPriority.Background);
+                    break;
+
+                case WM_MOVE:
+                case WM_MOVING:
+                    // Do nothing during drag; WM_EXITSIZEMOVE will handle the final update
+                    break;
             }
             return IntPtr.Zero;
         }
@@ -222,7 +242,8 @@ namespace CalWidget
         protected override void OnLocationChanged(EventArgs e)
         {
             base.OnLocationChanged(e);
-            if (IsLoaded && Visibility == Visibility.Visible)
+            // Only trigger debounced update when NOT actively dragging
+            if (!_isDragging && IsLoaded && Visibility == Visibility.Visible)
             {
                 _glassDebounceTimer.Stop();
                 _glassDebounceTimer.Start();
@@ -278,9 +299,8 @@ namespace CalWidget
         {
             if (e.ChangedButton == MouseButton.Left)
             {
+                // WM_ENTERSIZEMOVE/WM_EXITSIZEMOVE in WndProc handle freeze/refresh around DragMove
                 DragMove();
-                SaveWindowPosition();
-                UpdateCascadeGlass();
             }
         }
 

@@ -35,11 +35,11 @@
     <SolidColorBrush x:Key="MacroCarbsBrush" Color="{StaticResource MacroCarbsColor}" />
     <SolidColorBrush x:Key="MacroEmeraldBrush" Color="{StaticResource MacroEmeraldColor}" />
 
-    <!-- Напівпрозорі темні доріжки кілець (rgba(255, 255, 255, 0.08)) -->
+    <!-- Насичені кольори доріжок кілець (тонований напівпрозорий «жолоб скляної трубки») -->
     <SolidColorBrush x:Key="RingTrackBrush" Color="#FFFFFF" Opacity="0.08" />
-    <SolidColorBrush x:Key="MacroFatTrackBrush" Color="{StaticResource MacroFatColor}" Opacity="0.16" />
-    <SolidColorBrush x:Key="MacroProteinTrackBrush" Color="{StaticResource MacroProteinColor}" Opacity="0.16" />
-    <SolidColorBrush x:Key="MacroCarbsTrackBrush" Color="{StaticResource MacroCarbsColor}" Opacity="0.16" />
+    <SolidColorBrush x:Key="MacroFatTrackBrush" Color="{StaticResource MacroFatColor}" Opacity="0.22" />
+    <SolidColorBrush x:Key="MacroProteinTrackBrush" Color="{StaticResource MacroProteinColor}" Opacity="0.22" />
+    <SolidColorBrush x:Key="MacroCarbsTrackBrush" Color="{StaticResource MacroCarbsColor}" Opacity="0.22" />
 
     <!-- Стилі аватарок карток каталогу (темна тема: графітовий фон з тонкою рамкою) -->
     <SolidColorBrush x:Key="ProductAvatarBgBrush" Color="#222228" />
