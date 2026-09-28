@@ -231,12 +231,40 @@
                     <Grid Width="196" Height="196">
 
                         <!-- OUTER RING: FATS (R=87) -->
-                        <!-- Layer 1: Glass tube track (11px, tinted translucent) -->
+                        <!-- Layer 1a: Glass tube base (macro-tinted, translucent) -->
                         <Ellipse Width="174" Height="174"
                                  Stroke="{DynamicResource MacroFatTrackBrush}"
                                  StrokeThickness="11"
                                  HorizontalAlignment="Center"
                                  VerticalAlignment="Center" />
+                        <!-- Layer 1b: Glass sheen — white gradient top→bottom (simulates tube curvature) -->
+                        <Ellipse Width="174" Height="174"
+                                 StrokeThickness="11"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 IsHitTestVisible="False">
+                            <Ellipse.Stroke>
+                                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                    <GradientStop Color="#55FFFFFF" Offset="0.0" />
+                                    <GradientStop Color="#18FFFFFF" Offset="0.38" />
+                                    <GradientStop Color="#00FFFFFF" Offset="0.65" />
+                                    <GradientStop Color="#0C000000" Offset="1.0" />
+                                </LinearGradientBrush>
+                            </Ellipse.Stroke>
+                        </Ellipse>
+                        <!-- Layer 1c: Thin outer glass rim (1px specular edge) -->
+                        <Ellipse Width="174" Height="174"
+                                 StrokeThickness="1"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 IsHitTestVisible="False">
+                            <Ellipse.Stroke>
+                                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                    <GradientStop Color="#70FFFFFF" Offset="0.0" />
+                                    <GradientStop Color="#15FFFFFF" Offset="1.0" />
+                                </LinearGradientBrush>
+                            </Ellipse.Stroke>
+                        </Ellipse>
                         <!-- Layer 2: Fluid core arc (11px, gradient amber) -->
                         <Path x:Name="RingFatsPath"
                               StrokeThickness="11"
@@ -261,12 +289,40 @@
                               StrokeEndLineCap="Round" />
 
                         <!-- MIDDLE RING: PROTEIN (R=74) -->
-                        <!-- Layer 1: Glass tube track -->
+                        <!-- Layer 1a: Glass tube base -->
                         <Ellipse Width="148" Height="148"
                                  Stroke="{DynamicResource MacroProteinTrackBrush}"
                                  StrokeThickness="11"
                                  HorizontalAlignment="Center"
                                  VerticalAlignment="Center" />
+                        <!-- Layer 1b: Glass sheen -->
+                        <Ellipse Width="148" Height="148"
+                                 StrokeThickness="11"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 IsHitTestVisible="False">
+                            <Ellipse.Stroke>
+                                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                    <GradientStop Color="#55FFFFFF" Offset="0.0" />
+                                    <GradientStop Color="#18FFFFFF" Offset="0.38" />
+                                    <GradientStop Color="#00FFFFFF" Offset="0.65" />
+                                    <GradientStop Color="#0C000000" Offset="1.0" />
+                                </LinearGradientBrush>
+                            </Ellipse.Stroke>
+                        </Ellipse>
+                        <!-- Layer 1c: Thin outer glass rim -->
+                        <Ellipse Width="148" Height="148"
+                                 StrokeThickness="1"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 IsHitTestVisible="False">
+                            <Ellipse.Stroke>
+                                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                    <GradientStop Color="#70FFFFFF" Offset="0.0" />
+                                    <GradientStop Color="#15FFFFFF" Offset="1.0" />
+                                </LinearGradientBrush>
+                            </Ellipse.Stroke>
+                        </Ellipse>
                         <!-- Layer 2: Fluid core arc (11px, gradient neon blue) -->
                         <Path x:Name="RingProteinPath"
                               StrokeThickness="11"
@@ -291,12 +347,40 @@
                               StrokeEndLineCap="Round" />
 
                         <!-- INNER RING: CARBS (R=61) -->
-                        <!-- Layer 1: Glass tube track -->
+                        <!-- Layer 1a: Glass tube base -->
                         <Ellipse Width="122" Height="122"
                                  Stroke="{DynamicResource MacroCarbsTrackBrush}"
                                  StrokeThickness="11"
                                  HorizontalAlignment="Center"
                                  VerticalAlignment="Center" />
+                        <!-- Layer 1b: Glass sheen -->
+                        <Ellipse Width="122" Height="122"
+                                 StrokeThickness="11"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 IsHitTestVisible="False">
+                            <Ellipse.Stroke>
+                                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                    <GradientStop Color="#55FFFFFF" Offset="0.0" />
+                                    <GradientStop Color="#18FFFFFF" Offset="0.38" />
+                                    <GradientStop Color="#00FFFFFF" Offset="0.65" />
+                                    <GradientStop Color="#0C000000" Offset="1.0" />
+                                </LinearGradientBrush>
+                            </Ellipse.Stroke>
+                        </Ellipse>
+                        <!-- Layer 1c: Thin outer glass rim -->
+                        <Ellipse Width="122" Height="122"
+                                 StrokeThickness="1"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 IsHitTestVisible="False">
+                            <Ellipse.Stroke>
+                                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                    <GradientStop Color="#70FFFFFF" Offset="0.0" />
+                                    <GradientStop Color="#15FFFFFF" Offset="1.0" />
+                                </LinearGradientBrush>
+                            </Ellipse.Stroke>
+                        </Ellipse>
                         <!-- Layer 2: Fluid core arc (11px, gradient coral-ruby) -->
                         <Path x:Name="RingCarbsPath"
                               StrokeThickness="11"
