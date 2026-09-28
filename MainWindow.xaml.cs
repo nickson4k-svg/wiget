@@ -207,8 +207,6 @@ namespace CalWidget
         private const int WM_ENTERSIZEMOVE = 0x0231;
         private const int WM_EXITSIZEMOVE  = 0x0232;
         private long _lastGlassUpdateTick = 0;
-        // True while the user is actively dragging or resizing the window.
-        // During this time we freeze the glass texture to avoid BitBlt racing DWM.
         private bool _isDragging = false;
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -216,24 +214,24 @@ namespace CalWidget
             switch (msg)
             {
                 case WM_ENTERSIZEMOVE:
-                    // Window drag/resize started — freeze glass, stop periodic refresh
                     _isDragging = true;
-                    _glassDebounceTimer.Stop();
                     break;
 
                 case WM_EXITSIZEMOVE:
-                    // Window drag/resize ended — do exactly one refresh then re-enable
                     _isDragging = false;
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        UpdateCascadeGlass(force: true);
-                        SaveWindowPosition();
-                    }), DispatcherPriority.Background);
+                    UpdateCascadeGlass(force: true);
+                    SaveWindowPosition();
                     break;
 
                 case WM_MOVE:
                 case WM_MOVING:
-                    // Do nothing during drag; WM_EXITSIZEMOVE will handle the final update
+                    // Плавне оновлення скла в реальному часі під час перетягування (до 60 FPS, ліміт ~16 мс)
+                    long now = Environment.TickCount64;
+                    if (now - _lastGlassUpdateTick >= 16)
+                    {
+                        _lastGlassUpdateTick = now;
+                        UpdateCascadeGlass(force: true);
+                    }
                     break;
             }
             return IntPtr.Zero;
@@ -242,11 +240,14 @@ namespace CalWidget
         protected override void OnLocationChanged(EventArgs e)
         {
             base.OnLocationChanged(e);
-            // Only trigger debounced update when NOT actively dragging
-            if (!_isDragging && IsLoaded && Visibility == Visibility.Visible)
+            if (IsLoaded && Visibility == Visibility.Visible)
             {
-                _glassDebounceTimer.Stop();
-                _glassDebounceTimer.Start();
+                long now = Environment.TickCount64;
+                if (now - _lastGlassUpdateTick >= 16)
+                {
+                    _lastGlassUpdateTick = now;
+                    UpdateCascadeGlass(force: true);
+                }
             }
         }
 
