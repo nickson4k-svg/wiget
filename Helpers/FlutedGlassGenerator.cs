@@ -31,6 +31,13 @@ namespace CalWidget.Helpers
 
         // Тема оформлення
         public bool IsDarkTheme { get; set; } = false;
+
+        // Кольоровий tint для кілець БЖВ (0–255). Нульові значення = нейтральний tint (фоновий режим)
+        public float TintR { get; set; } = 0f;
+        public float TintG { get; set; } = 0f;
+        public float TintB { get; set; } = 0f;
+        // Сила кольорового tint поверх заломленого зображення (0.0 = чисте скло, 1.0 = суцільний колір)
+        public float TintOpacity { get; set; } = 0f;
     }
 
     /// <summary>
@@ -39,10 +46,17 @@ namespace CalWidget.Helpers
     /// </summary>
     public static class FlutedGlassGenerator
     {
+        // Буфери для фонового вікна (main glass)
         [ThreadStatic]
         private static byte[]? s_desktopBuffer;
         [ThreadStatic]
         private static byte[]? s_displacedBuffer;
+
+        // Окремі буфери для кілець БЖВ (ring glass) — уникаємо конкуренції з фоном
+        [ThreadStatic]
+        private static byte[]? s_ringDesktopBuffer;
+        [ThreadStatic]
+        private static byte[]? s_ringDisplacedBuffer;
 
         /// <summary>
         /// Малює каскадне скло безпосередньо в існуючий WriteableBitmap (In-Place, 0 GC allocations)
@@ -79,6 +93,33 @@ namespace CalWidget.Helpers
             var wb = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
             RenderCascadeGlassIntoBitmap(wb, screenX, screenY, width, height, options);
             return wb;
+        }
+
+        /// <summary>
+        /// Рендерить Fluted Glass у WriteableBitmap для кільця БЖВ.
+        /// Захоплює квадрат screenSize×screenSize з координат (screenX,screenY), застосовує
+        /// каскадну sine-дисторцію та кольоровий tint кільця (amber/blue/red).
+        /// Використовує окремий ThreadStatic буфер — не конкурує з фоновим рендерингом.
+        /// </summary>
+        public static void RenderRingGlassIntoBitmap(
+            WriteableBitmap wb, int screenX, int screenY, int width, int height, FlutedGlassOptions options)
+        {
+            if (wb == null || width <= 0 || height <= 0) return;
+
+            int bufferSize = width * height * 4;
+            if (s_ringDesktopBuffer == null || s_ringDesktopBuffer.Length < bufferSize)
+                s_ringDesktopBuffer = new byte[bufferSize];
+            if (s_ringDisplacedBuffer == null || s_ringDisplacedBuffer.Length < bufferSize)
+                s_ringDisplacedBuffer = new byte[bufferSize];
+
+            bool captured = CaptureScreenRegionToBuffer(screenX, screenY, width, height, s_ringDesktopBuffer);
+            if (!captured)
+            {
+                RenderFallbackIntoBitmap(wb, width, height, options);
+                return;
+            }
+
+            ProcessCascadeGlassIntoBitmap(wb, s_ringDesktopBuffer, s_ringDisplacedBuffer, width, height, options);
         }
 
         private static bool CaptureScreenRegionToBuffer(int x, int y, int width, int height, byte[] buffer)
@@ -214,10 +255,17 @@ namespace CalWidget.Helpers
 
                     fixed (byte* pDisp = displacedPixels)
                     {
-                        float tintR = options.IsDarkTheme ? 20f : 250f;
-                        float tintG = options.IsDarkTheme ? 22f : 252f;
-                        float tintB = options.IsDarkTheme ? 26f : 255f;
+                        // Нейтральний tint вікна (frost/mica), або кольоровий tint кільця (amber/blue/red)
+                        float neutralR = options.IsDarkTheme ? 20f : 250f;
+                        float neutralG = options.IsDarkTheme ? 22f : 252f;
+                        float neutralB = options.IsDarkTheme ? 26f : 255f;
                         float tintAlpha = (float)Math.Clamp(options.GlassOpacity, 0.05, 0.90);
+
+                        // Кольоровий tint кільця (0 = відключено — звичайний режим фону)
+                        float ringTintR = options.TintR;
+                        float ringTintG = options.TintG;
+                        float ringTintB = options.TintB;
+                        float ringTintOpacity = options.TintOpacity;
 
                         if (blurR <= 0)
                         {
@@ -236,9 +284,18 @@ namespace CalWidget.Helpers
                                     float g = rowDisp[idx + 1] * lightMul;
                                     float r = rowDisp[idx + 2] * lightMul;
 
-                                    float finalR = (r * (1.0f - tintAlpha)) + (tintR * tintAlpha);
-                                    float finalG = (g * (1.0f - tintAlpha)) + (tintG * tintAlpha);
-                                    float finalB = (b * (1.0f - tintAlpha)) + (tintB * tintAlpha);
+                                    // Шар 1: нейтральний frost tint
+                                    float finalR = (r * (1.0f - tintAlpha)) + (neutralR * tintAlpha);
+                                    float finalG = (g * (1.0f - tintAlpha)) + (neutralG * tintAlpha);
+                                    float finalB = (b * (1.0f - tintAlpha)) + (neutralB * tintAlpha);
+
+                                    // Шар 2: кольоровий tint кільця (додається тільки при TintOpacity > 0)
+                                    if (ringTintOpacity > 0f)
+                                    {
+                                        finalR = (finalR * (1.0f - ringTintOpacity)) + (ringTintR * ringTintOpacity);
+                                        finalG = (finalG * (1.0f - ringTintOpacity)) + (ringTintG * ringTintOpacity);
+                                        finalB = (finalB * (1.0f - ringTintOpacity)) + (ringTintB * ringTintOpacity);
+                                    }
 
                                     outRow[idx + 0] = (byte)Math.Clamp((int)finalB, 0, 255);
                                     outRow[idx + 1] = (byte)Math.Clamp((int)finalG, 0, 255);
@@ -293,9 +350,18 @@ namespace CalWidget.Helpers
                                     float blurredG = ((float)sumG / count) * lightMul;
                                     float blurredR = ((float)sumR / count) * lightMul;
 
-                                    float finalR = (blurredR * (1.0f - tintAlpha)) + (tintR * tintAlpha);
-                                    float finalG = (blurredG * (1.0f - tintAlpha)) + (tintG * tintAlpha);
-                                    float finalB = (blurredB * (1.0f - tintAlpha)) + (tintB * tintAlpha);
+                                    // Шар 1: нейтральний frost tint
+                                    float finalR = (blurredR * (1.0f - tintAlpha)) + (neutralR * tintAlpha);
+                                    float finalG = (blurredG * (1.0f - tintAlpha)) + (neutralG * tintAlpha);
+                                    float finalB = (blurredB * (1.0f - tintAlpha)) + (neutralB * tintAlpha);
+
+                                    // Шар 2: кольоровий tint кільця
+                                    if (ringTintOpacity > 0f)
+                                    {
+                                        finalR = (finalR * (1.0f - ringTintOpacity)) + (ringTintR * ringTintOpacity);
+                                        finalG = (finalG * (1.0f - ringTintOpacity)) + (ringTintG * ringTintOpacity);
+                                        finalB = (finalB * (1.0f - ringTintOpacity)) + (ringTintB * ringTintOpacity);
+                                    }
 
                                     byte* outRow = pDst + (y * stride);
                                     int outIdx = x * 4;

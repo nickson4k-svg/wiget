@@ -989,6 +989,12 @@ namespace CalWidget
         private int _lastScreenX = int.MinValue;
         private int _lastScreenY = int.MinValue;
 
+        // Fluted Glass WriteableBitmaps для кілець БЖВ (захоплюють саму область кільця на екрані)
+        private WriteableBitmap? _ringFatsBitmap;
+        private WriteableBitmap? _ringProteinBitmap;
+        private WriteableBitmap? _ringCarbsBitmap;
+        private int _ringBitmapSize = 0; // фізичний розмір квадрата кільця в пікселях (196 WPF × DPI)
+
         /// <summary>
         /// Оновлює оптичний ефект рифленого скла Fluted Glass (Paper Design)
         /// Використовує in-place рендеринг у поновлюваний WriteableBitmap для досягнення 60 FPS без дьоргань.
@@ -1031,7 +1037,9 @@ namespace CalWidget
                     IsDarkTheme = ThemeManager.CurrentTheme == "Dark"
                 };
 
-                // Створюємо чи перевикористовуємо один WriteableBitmap без додаткових виділень пам'яті
+                // ════════════════════════════════════════════════════════════
+                // 1. Фонове вікно — нейтральний frost/mica ефект
+                // ════════════════════════════════════════════════════════════
                 if (_glassBitmap == null || _glassW != pixelW || _glassH != pixelH)
                 {
                     _glassW = pixelW;
@@ -1044,6 +1052,89 @@ namespace CalWidget
                 }
 
                 FlutedGlassGenerator.RenderCascadeGlassIntoBitmap(_glassBitmap, screenX, screenY, pixelW, pixelH, options);
+
+                // ════════════════════════════════════════════════════════════
+                // 2. Кільця БЖВ — той самий Fluted Glass шейдер + кольоровий tint (amber / blue / red)
+                // Захоплюємо квадрат 196×196 WPF-пікселів (масштабуємо на DPI) з центру відносно вікна
+                // ════════════════════════════════════════════════════════════
+                if (_settings.EnableFlutedGlass)
+                {
+                    // Фізичний розмір Grid 196×196 WPF-пікселів в пікселях екрана
+                    double dpiScale = Math.Max(1.0, pixelW / Math.Max(1, ActualWidth));
+                    int ringPx = Math.Max(60, (int)Math.Round(196.0 * dpiScale));
+
+                    // Offset до центру Grid кілець (відносно лівого-верхнього кута вікна)
+                    // RingGrid центровано горизонтально, відступ згори ~Row1 починається після Header
+                    Point ringTL = RingGridContainer != null
+                        ? RingGridContainer.PointToScreen(new Point(0, 0))
+                        : new Point(screenX + (pixelW - ringPx) / 2, screenY + 60);
+
+                    int ringScreenX = (int)Math.Round(ringTL.X);
+                    int ringScreenY = (int)Math.Round(ringTL.Y);
+
+                    if (_ringBitmapSize != ringPx)
+                    {
+                        _ringBitmapSize = ringPx;
+                        _ringFatsBitmap = new WriteableBitmap(ringPx, ringPx, 96, 96, PixelFormats.Bgra32, null);
+                        _ringProteinBitmap = new WriteableBitmap(ringPx, ringPx, 96, 96, PixelFormats.Bgra32, null);
+                        _ringCarbsBitmap = new WriteableBitmap(ringPx, ringPx, 96, 96, PixelFormats.Bgra32, null);
+
+                        if (RingFatsGlassImage != null) RingFatsGlassImage.Source = _ringFatsBitmap;
+                        if (RingProteinGlassImage != null) RingProteinGlassImage.Source = _ringProteinBitmap;
+                        if (RingCarbsGlassImage != null) RingCarbsGlassImage.Source = _ringCarbsBitmap;
+                    }
+
+                    // Опції для кілець: ті самі налаштування, але з меншою прозорістю (glass more opaque) та кольором
+                    var ringBaseOpts = new FlutedGlassOptions
+                    {
+                        EnableFlutedGlass = true,
+                        GlassOpacity = 0.30,   // помірна frost-прозорість: видно скло скрізь
+                        StripeWidth = Math.Max(4, _settings.RibWidth),
+                        Distortion = _settings.RibDistortion,
+                        Shadows = 0.45,        // трохи між ребрами глибші — кільця помітніші
+                        BlurRadius = _settings.BlurRadius,
+                        Edges = 0.32,
+                        IsDarkTheme = ThemeManager.CurrentTheme == "Dark",
+                        TintOpacity = 0.40f,   // сила кольорового tint — півпрозоре скло з кольором
+                    };
+
+                    // Кільце ЖИРІВ — amber #F59E0B  →  R=245 G=158 B=11
+                    var fatOpts = new FlutedGlassOptions
+                    {
+                        EnableFlutedGlass = ringBaseOpts.EnableFlutedGlass, GlassOpacity = ringBaseOpts.GlassOpacity,
+                        StripeWidth = ringBaseOpts.StripeWidth, Distortion = ringBaseOpts.Distortion,
+                        Shadows = ringBaseOpts.Shadows, BlurRadius = ringBaseOpts.BlurRadius,
+                        Edges = ringBaseOpts.Edges, IsDarkTheme = ringBaseOpts.IsDarkTheme,
+                        TintR = 245f, TintG = 158f, TintB = 11f, TintOpacity = ringBaseOpts.TintOpacity
+                    };
+
+                    // Кільце БІЛКА — sky-blue #3B82F6  →  R=59 G=130 B=246
+                    var protOpts = new FlutedGlassOptions
+                    {
+                        EnableFlutedGlass = ringBaseOpts.EnableFlutedGlass, GlassOpacity = ringBaseOpts.GlassOpacity,
+                        StripeWidth = ringBaseOpts.StripeWidth, Distortion = ringBaseOpts.Distortion,
+                        Shadows = ringBaseOpts.Shadows, BlurRadius = ringBaseOpts.BlurRadius,
+                        Edges = ringBaseOpts.Edges, IsDarkTheme = ringBaseOpts.IsDarkTheme,
+                        TintR = 59f, TintG = 130f, TintB = 246f, TintOpacity = ringBaseOpts.TintOpacity
+                    };
+
+                    // Кільце ВУГЛЕВОДІВ — coral-red #EF4444  →  R=239 G=68 B=68
+                    var carbsOpts = new FlutedGlassOptions
+                    {
+                        EnableFlutedGlass = ringBaseOpts.EnableFlutedGlass, GlassOpacity = ringBaseOpts.GlassOpacity,
+                        StripeWidth = ringBaseOpts.StripeWidth, Distortion = ringBaseOpts.Distortion,
+                        Shadows = ringBaseOpts.Shadows, BlurRadius = ringBaseOpts.BlurRadius,
+                        Edges = ringBaseOpts.Edges, IsDarkTheme = ringBaseOpts.IsDarkTheme,
+                        TintR = 239f, TintG = 68f, TintB = 68f, TintOpacity = ringBaseOpts.TintOpacity
+                    };
+
+                    if (_ringFatsBitmap != null)
+                        FlutedGlassGenerator.RenderRingGlassIntoBitmap(_ringFatsBitmap, ringScreenX, ringScreenY, ringPx, ringPx, fatOpts);
+                    if (_ringProteinBitmap != null)
+                        FlutedGlassGenerator.RenderRingGlassIntoBitmap(_ringProteinBitmap, ringScreenX, ringScreenY, ringPx, ringPx, protOpts);
+                    if (_ringCarbsBitmap != null)
+                        FlutedGlassGenerator.RenderRingGlassIntoBitmap(_ringCarbsBitmap, ringScreenX, ringScreenY, ringPx, ringPx, carbsOpts);
+                }
             }
             catch (Exception ex)
             {

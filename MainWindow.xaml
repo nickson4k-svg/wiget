@@ -228,22 +228,38 @@
 
                 <!-- Row 1: Liquid Glass Macro Rings -->
                 <Grid Grid.Row="1" Margin="0,10,0,10" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Grid Width="196" Height="196">
+                    <Grid x:Name="RingGridContainer" Width="196" Height="196">
 
                         <!-- ═══════════════════════════════════════════════════════ -->
                         <!-- OUTER RING: FATS — Liquid Glass Tube (R=87, D=174)     -->
                         <!-- ═══════════════════════════════════════════════════════ -->
 
-                        <!-- T1: Glass tube body — tinted, semi-opaque (the glass material itself) -->
-                        <Ellipse Width="174" Height="174"
-                                 StrokeThickness="11"
-                                 HorizontalAlignment="Center"
-                                 VerticalAlignment="Center"
-                                 Opacity="0.45">
-                            <Ellipse.Stroke>
-                                <SolidColorBrush Color="#F59E0B" />
-                            </Ellipse.Stroke>
-                        </Ellipse>
+                        <!-- T1: Fluted Glass tube body — живе зображення робочого столу з amber tint, клип у формі кільця -->
+                        <Image x:Name="RingFatsGlassImage"
+                               Width="174" Height="174"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Stretch="Fill"
+                               IsHitTestVisible="False">
+                            <Image.OpacityMask>
+                                <DrawingBrush>
+                                    <DrawingBrush.Drawing>
+                                        <GeometryDrawing Brush="White">
+                                            <GeometryDrawing.Geometry>
+                                                <!-- Тороїд: зовнішне коло біле (R=87), внутрішнє чорне (R=81.5) = 11px трубка -->
+                                                <CombinedGeometry GeometryCombineMode="Exclude">
+                                                    <CombinedGeometry.Geometry1>
+                                                        <EllipseGeometry Center="87,87" RadiusX="87" RadiusY="87" />
+                                                    </CombinedGeometry.Geometry1>
+                                                    <CombinedGeometry.Geometry2>
+                                                        <EllipseGeometry Center="87,87" RadiusX="81.5" RadiusY="81.5" />
+                                                    </CombinedGeometry.Geometry2>
+                                                </CombinedGeometry>
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+                                    </DrawingBrush.Drawing>
+                                </DrawingBrush>
+                            </Image.OpacityMask>
+                        </Image>
 
                         <!-- T2: Primary top sheen — strong white reflection on upper arc (light source) -->
                         <Ellipse Width="174" Height="174"
@@ -335,16 +351,32 @@
                         <!-- MIDDLE RING: PROTEIN — Liquid Glass Tube (R=74, D=148) -->
                         <!-- ═══════════════════════════════════════════════════════ -->
 
-                        <!-- T1: Glass tube body -->
-                        <Ellipse Width="148" Height="148"
-                                 StrokeThickness="11"
-                                 HorizontalAlignment="Center"
-                                 VerticalAlignment="Center"
-                                 Opacity="0.45">
-                            <Ellipse.Stroke>
-                                <SolidColorBrush Color="#3B82F6" />
-                            </Ellipse.Stroke>
-                        </Ellipse>
+                        <!-- T1: Fluted Glass tube body — blue tint, клип у формі кільця -->
+                        <Image x:Name="RingProteinGlassImage"
+                               Width="148" Height="148"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Stretch="Fill"
+                               IsHitTestVisible="False">
+                            <Image.OpacityMask>
+                                <DrawingBrush>
+                                    <DrawingBrush.Drawing>
+                                        <GeometryDrawing Brush="White">
+                                            <GeometryDrawing.Geometry>
+                                                <!-- Тороїд: R=74, товщина 11px = внутрішній R=68.5 -->
+                                                <CombinedGeometry GeometryCombineMode="Exclude">
+                                                    <CombinedGeometry.Geometry1>
+                                                        <EllipseGeometry Center="74,74" RadiusX="74" RadiusY="74" />
+                                                    </CombinedGeometry.Geometry1>
+                                                    <CombinedGeometry.Geometry2>
+                                                        <EllipseGeometry Center="74,74" RadiusX="68.5" RadiusY="68.5" />
+                                                    </CombinedGeometry.Geometry2>
+                                                </CombinedGeometry>
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+                                    </DrawingBrush.Drawing>
+                                </DrawingBrush>
+                            </Image.OpacityMask>
+                        </Image>
 
                         <!-- T2: Primary top sheen -->
                         <Ellipse Width="148" Height="148"
@@ -436,16 +468,32 @@
                         <!-- INNER RING: CARBS — Liquid Glass Tube (R=61, D=122)    -->
                         <!-- ═══════════════════════════════════════════════════════ -->
 
-                        <!-- T1: Glass tube body -->
-                        <Ellipse Width="122" Height="122"
-                                 StrokeThickness="11"
-                                 HorizontalAlignment="Center"
-                                 VerticalAlignment="Center"
-                                 Opacity="0.45">
-                            <Ellipse.Stroke>
-                                <SolidColorBrush Color="#EF4444" />
-                            </Ellipse.Stroke>
-                        </Ellipse>
+                        <!-- T1: Fluted Glass tube body — red tint, клип у формі кільця -->
+                        <Image x:Name="RingCarbsGlassImage"
+                               Width="122" Height="122"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Stretch="Fill"
+                               IsHitTestVisible="False">
+                            <Image.OpacityMask>
+                                <DrawingBrush>
+                                    <DrawingBrush.Drawing>
+                                        <GeometryDrawing Brush="White">
+                                            <GeometryDrawing.Geometry>
+                                                <!-- Тороїд: R=61, товщина 11px = внутрішній R=55.5 -->
+                                                <CombinedGeometry GeometryCombineMode="Exclude">
+                                                    <CombinedGeometry.Geometry1>
+                                                        <EllipseGeometry Center="61,61" RadiusX="61" RadiusY="61" />
+                                                    </CombinedGeometry.Geometry1>
+                                                    <CombinedGeometry.Geometry2>
+                                                        <EllipseGeometry Center="61,61" RadiusX="55.5" RadiusY="55.5" />
+                                                    </CombinedGeometry.Geometry2>
+                                                </CombinedGeometry>
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+                                    </DrawingBrush.Drawing>
+                                </DrawingBrush>
+                            </Image.OpacityMask>
+                        </Image>
 
                         <!-- T2: Primary top sheen -->
                         <Ellipse Width="122" Height="122"
